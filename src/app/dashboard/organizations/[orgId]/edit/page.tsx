@@ -1,26 +1,29 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { useAuth } from '../../../../contexts/AuthContext';
-import { organizationsService, Organization } from '../../../../services/organizations';
+import { useAuth } from '../../../../../contexts/AuthContext';
+import { organizationsService, Organization } from '../../../../../services/organizations';
 import { ArrowLeft } from 'lucide-react';
-import { Button } from '../../../../components/ui/Button';
-import { Dialog } from '../../../../components/ui/Dialog';
-import { ImageUpload } from '../../../../components/ui/ImageUpload';
+import { Dialog } from '../../../../../components/ui/Dialog';
+import { ImageUpload } from '../../../../../components/ui/ImageUpload';
 
 type OrganizationFormData = Omit<Organization, '_id'>;
 
-export default function NewOrganization() {
+export default function EditOrganization() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const params = useParams();
+  const orgId = params.orgId as string;
+  const [loading, setLoading] = useState(true);
   const [errorDialog, setErrorDialog] = useState({ open: false, message: '' });
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<OrganizationFormData>();
 
@@ -30,6 +33,40 @@ export default function NewOrganization() {
     }
   }, [user, authLoading, router]);
 
+  useEffect(() => {
+    if (user && orgId) {
+      loadOrganization();
+    }
+  }, [user, orgId]);
+
+  const loadOrganization = async () => {
+    try {
+      setLoading(true);
+      const response = await organizationsService.getOne(orgId);
+      const org = response.data;
+
+      setValue('type', org.type);
+      setValue('name', org.name);
+      setValue('phone', org.phone);
+      setValue('email', org.email);
+      setValue('address.country', org.address.country);
+      setValue('address.state', org.address.state);
+      setValue('address.city', org.address.city);
+      setValue('address.neighborhood', org.address.neighborhood);
+      setValue('address.street', org.address.street);
+      setValue('address.zipCode', org.address.zipCode);
+
+      // Set image states
+      setProfileImage(org.profileImage || null);
+      setCoverImage(org.coverImage || null);
+    } catch (error) {
+      console.error('Erro ao carregar organização:', error);
+      setErrorDialog({ open: true, message: 'Erro ao carregar organização. Por favor, tente novamente.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const onSubmit = async (data: OrganizationFormData) => {
     try {
       const organizationData = {
@@ -37,15 +74,15 @@ export default function NewOrganization() {
         profileImage,
         coverImage,
       };
-      await organizationsService.create(organizationData);
+      await organizationsService.update(orgId, organizationData);
       router.push('/dashboard');
     } catch (error) {
-      console.error('Erro ao criar organização:', error);
-      setErrorDialog({ open: true, message: 'Erro ao criar organização. Por favor, tente novamente.' });
+      console.error('Erro ao atualizar organização:', error);
+      setErrorDialog({ open: true, message: 'Erro ao atualizar organização. Por favor, tente novamente.' });
     }
   };
 
-  if (authLoading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-950">
         <div className="text-center">
@@ -351,7 +388,7 @@ export default function NewOrganization() {
                     disabled={isSubmitting}
                     className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:opacity-50"
                   >
-                    {isSubmitting ? 'Criando...' : 'Criar Organização'}
+                    {isSubmitting ? 'Salvando...' : 'Salvar Alterações'}
                   </button>
                 </div>
               </div>

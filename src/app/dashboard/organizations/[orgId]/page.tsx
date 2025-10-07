@@ -6,10 +6,8 @@ import { useAuth } from '../../../../contexts/AuthContext';
 import { organizationsService, Organization } from '../../../../services/organizations';
 import { tournamentsService, Tournament } from '../../../../services/tournaments';
 import { rankingsService, Ranking } from '../../../../services/rankings';
-import { ArrowLeft, Plus, Trophy, Award, Mail, Phone, MapPin, Building2, Loader2, Calendar } from 'lucide-react';
+import { ArrowLeft, Plus, Trophy, Award, Mail, Phone, MapPin, Building2, Calendar } from 'lucide-react';
 import { Button } from '../../../../components/ui/Button';
-import { Card, CardHeader, CardTitle, CardContent } from '../../../../components/ui/Card';
-import { PageLayout } from '../../../../components/layout/PageLayout';
 
 export default function OrganizationDetails() {
   const { user, loading: authLoading } = useAuth();
@@ -66,19 +64,19 @@ export default function OrganizationDetails() {
 
   const getTypeBadgeColor = (type: string) => {
     const colors = {
-      academia: 'bg-gradient-to-r from-blue-500/90 to-blue-600/90',
-      liga: 'bg-gradient-to-r from-purple-500/90 to-purple-600/90',
-      federacao: 'bg-gradient-to-r from-green-500/90 to-green-600/90'
+      academia: 'bg-blue-500/10 text-blue-400 inset-ring inset-ring-blue-500/20',
+      liga: 'bg-purple-500/10 text-purple-400 inset-ring inset-ring-purple-500/20',
+      federacao: 'bg-green-500/10 text-green-400 inset-ring inset-ring-green-500/20'
     };
-    return colors[type as keyof typeof colors] || 'bg-gradient-to-r from-gray-500/90 to-gray-600/90';
+    return colors[type as keyof typeof colors] || 'bg-gray-500/10 text-gray-400 inset-ring inset-ring-gray-500/20';
   };
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f29] to-[#0f1419] flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-950">
         <div className="text-center">
-          <Loader2 className="animate-spin text-[#e1b450] mx-auto mb-6" size={64} strokeWidth={2} />
-          <div className="text-3xl font-semibold text-white">Carregando...</div>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+          <p className="mt-4 text-sm text-gray-400">Carregando...</p>
         </div>
       </div>
     );
@@ -86,367 +84,289 @@ export default function OrganizationDetails() {
 
   if (error || !organization) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f29] to-[#0f1419] flex items-center justify-center">
-        <PageLayout maxWidth="xl">
-          <Card className="max-w-2xl mx-auto backdrop-blur-xl bg-[#1e2530]/50 border-[#2d3748]">
-            <CardContent className="p-12">
-              <div className="text-center">
-                <div className="text-3xl font-semibold text-red-500 mb-8">{error || 'Organização não encontrada'}</div>
-                <Button variant="secondary" size="lg" onClick={loadData}>
-                  Tentar Novamente
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </PageLayout>
+      <div className="min-h-screen flex items-center justify-center bg-gray-950 px-6">
+        <div className="text-center">
+          <p className="text-sm font-semibold text-red-400">{error || 'Organização não encontrada'}</p>
+          <Button variant="primary" onClick={loadData} className="mt-4">
+            Tentar Novamente
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f1419] via-[#1a1f29] to-[#0f1419]">
-      <PageLayout maxWidth="xl">
+    <div className="min-h-screen bg-gray-950">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {/* Back Button */}
         <button
           onClick={() => router.push('/dashboard')}
-          className="flex items-center gap-2 text-[#e1b450] hover:text-[#ffc015] mb-12 transition-all duration-300 group"
+          className="inline-flex items-center gap-x-2 text-sm font-semibold text-gray-400 hover:text-white mb-8"
         >
-          <ArrowLeft size={24} strokeWidth={2.5} className="group-hover:-translate-x-1 transition-transform" />
-          <span className="text-lg font-semibold">Voltar para Dashboard</span>
+          <ArrowLeft className="h-4 w-4" />
+          Voltar para Dashboard
         </button>
 
-        {/* Hero Section - Organization Header */}
-        <div className="mb-20">
-          <Card className="backdrop-blur-xl bg-gradient-to-br from-[#1e2530]/50 to-[#1a1f29]/50 border-[#2d3748] shadow-2xl overflow-hidden">
-            {/* Cover Image/Gradient */}
-            <div className="relative h-72 overflow-hidden">
+        {/* Organization Header */}
+        <div className="mb-12">
+          <div className="overflow-hidden rounded-lg bg-gray-900 shadow-sm">
+            {/* Cover */}
+            <div className="relative h-48 overflow-hidden">
               {organization.coverImage ? (
-                <>
-                  <img
-                    src={organization.coverImage}
-                    alt={organization.name}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#1e2530] via-[#1e2530]/60 to-transparent" />
-                </>
+                <img src={organization.coverImage} alt={organization.name} className="h-full w-full object-cover" />
               ) : (
-                <div className="w-full h-full bg-gradient-to-br from-[#1f4baf] via-[#2557c4] to-[#1f4baf]">
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#1e2530] via-[#1e2530]/60 to-transparent" />
-                </div>
+                <div className="h-full w-full bg-gradient-to-br from-indigo-600 to-indigo-800" />
               )}
-
-              {/* Type Badge */}
-              <div className="absolute top-8 right-8">
-                <span className={`inline-flex items-center gap-2 ${getTypeBadgeColor(organization.type)} text-white text-sm font-bold px-6 py-3 rounded-full backdrop-blur-sm shadow-2xl`}>
-                  <Building2 size={18} strokeWidth={2.5} />
+              <div className="absolute right-6 top-6">
+                <span className={`inline-flex items-center gap-x-1.5 rounded-full px-2 py-1 text-xs font-medium ${getTypeBadgeColor(organization.type)}`}>
+                  <Building2 className="h-3 w-3" />
                   {getOrgTypeLabel(organization.type)}
                 </span>
               </div>
-
-              {/* Profile Image Overlay */}
-              <div className="absolute -bottom-16 left-12">
-                {organization.profileImage ? (
-                  <img
-                    src={organization.profileImage}
-                    alt={organization.name}
-                    className="w-32 h-32 rounded-3xl border-4 border-[#1e2530] shadow-2xl object-cover"
-                  />
-                ) : (
-                  <div className="w-32 h-32 rounded-3xl bg-gradient-to-br from-[#e1b450] to-[#ffc015] flex items-center justify-center text-5xl font-bold text-[#0f1419] border-4 border-[#1e2530] shadow-2xl">
-                    {organization.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
-              </div>
             </div>
 
-            {/* Organization Info */}
-            <CardContent className="p-12 pt-24">
-              <div className="mb-10">
-                <h1 className="text-5xl font-bold text-white mb-4 leading-tight">
-                  {organization.name}
-                </h1>
-                <p className="text-xl text-[#a0aec0] leading-relaxed">
-                  Informações completas da organização
-                </p>
+            {/* Info */}
+            <div className="px-6 py-8">
+              <div className="flex items-center gap-x-6 mb-8">
+                <div className="relative -mt-20 flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-800 text-3xl font-bold text-white shadow-lg">
+                  {organization.profileImage ? (
+                    <img src={organization.profileImage} alt={organization.name} className="h-full w-full rounded-lg object-cover" />
+                  ) : (
+                    organization.name.charAt(0).toUpperCase()
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-2xl font-semibold text-white">{organization.name}</h1>
+                  <p className="mt-1 text-sm text-gray-400">Informações completas da organização</p>
+                </div>
               </div>
 
               {/* Contact Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="flex items-center gap-4 p-6 bg-[#1a1f29]/50 rounded-2xl border border-[#2d3748] hover:border-[#e1b450]/30 transition-all duration-300 group">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#e1b450] to-[#ffc015] flex items-center justify-center shadow-lg shadow-[#e1b450]/20 group-hover:scale-110 transition-transform duration-300">
-                    <Mail size={24} className="text-[#0f1419]" strokeWidth={2.5} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-[#a0aec0] uppercase tracking-wide mb-1">Email</p>
-                    <p className="text-sm font-medium text-white truncate">{organization.email}</p>
-                  </div>
+              <dl className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+                <div className="overflow-hidden rounded-lg bg-gray-800/50 px-4 py-5 sm:p-6">
+                  <dt className="flex items-center gap-x-2 text-sm font-medium text-gray-400">
+                    <Mail className="h-4 w-4" />
+                    Email
+                  </dt>
+                  <dd className="mt-1 text-sm font-semibold text-white truncate">{organization.email}</dd>
                 </div>
-
-                <div className="flex items-center gap-4 p-6 bg-[#1a1f29]/50 rounded-2xl border border-[#2d3748] hover:border-[#e1b450]/30 transition-all duration-300 group">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#1f4baf] to-[#2557c4] flex items-center justify-center shadow-lg shadow-[#1f4baf]/20 group-hover:scale-110 transition-transform duration-300">
-                    <Phone size={24} className="text-white" strokeWidth={2.5} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-[#a0aec0] uppercase tracking-wide mb-1">Telefone</p>
-                    <p className="text-sm font-medium text-white">{organization.phone}</p>
-                  </div>
+                <div className="overflow-hidden rounded-lg bg-gray-800/50 px-4 py-5 sm:p-6">
+                  <dt className="flex items-center gap-x-2 text-sm font-medium text-gray-400">
+                    <Phone className="h-4 w-4" />
+                    Telefone
+                  </dt>
+                  <dd className="mt-1 text-sm font-semibold text-white">{organization.phone}</dd>
                 </div>
-
-                <div className="flex items-center gap-4 p-6 bg-[#1a1f29]/50 rounded-2xl border border-[#2d3748] hover:border-[#e1b450]/30 transition-all duration-300 group md:col-span-2 lg:col-span-1">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg shadow-purple-500/20 group-hover:scale-110 transition-transform duration-300">
-                    <MapPin size={24} className="text-white" strokeWidth={2.5} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-[#a0aec0] uppercase tracking-wide mb-1">Endereço</p>
-                    <p className="text-sm font-medium text-white truncate">
-                      {organization.address.street}, {organization.address.neighborhood}
-                    </p>
-                    <p className="text-xs text-[#a0aec0] mt-1">
-                      {organization.address.city}/{organization.address.state} - {organization.address.zipCode}
-                    </p>
-                  </div>
+                <div className="overflow-hidden rounded-lg bg-gray-800/50 px-4 py-5 sm:p-6">
+                  <dt className="flex items-center gap-x-2 text-sm font-medium text-gray-400">
+                    <MapPin className="h-4 w-4" />
+                    Endereço
+                  </dt>
+                  <dd className="mt-1 text-sm font-semibold text-white">
+                    {organization.address.city}, {organization.address.state}
+                  </dd>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </dl>
+            </div>
+          </div>
         </div>
 
-        {/* Modern Tabs */}
-        <div className="flex gap-6 mb-16 p-6 bg-[#1e2530]/50 backdrop-blur-xl rounded-2xl border border-[#2d3748] shadow-2xl">
-          <button
-            onClick={() => setActiveTab('tournaments')}
-            className={`flex-1 flex items-center justify-center gap-3 py-6 px-8 rounded-2xl font-bold text-lg transition-all duration-300 ${
-              activeTab === 'tournaments'
-                ? 'bg-gradient-to-r from-[#1f4baf] to-[#2557c4] text-white shadow-2xl shadow-[#1f4baf]/30 scale-105'
-                : 'text-[#a0aec0] hover:text-white hover:bg-[#2d3748]/50'
-            }`}
-          >
-            <Trophy size={24} strokeWidth={2.5} />
-            <span>Torneios</span>
-            <span className={`ml-2 px-3 py-1 rounded-full text-sm font-bold ${
-              activeTab === 'tournaments'
-                ? 'bg-white/20'
-                : 'bg-[#2d3748]'
-            }`}>
-              {tournaments.length}
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab('rankings')}
-            className={`flex-1 flex items-center justify-center gap-3 py-6 px-8 rounded-2xl font-bold text-lg transition-all duration-300 ${
-              activeTab === 'rankings'
-                ? 'bg-gradient-to-r from-[#1f4baf] to-[#2557c4] text-white shadow-2xl shadow-[#1f4baf]/30 scale-105'
-                : 'text-[#a0aec0] hover:text-white hover:bg-[#2d3748]/50'
-            }`}
-          >
-            <Award size={24} strokeWidth={2.5} />
-            <span>Rankings</span>
-            <span className={`ml-2 px-3 py-1 rounded-full text-sm font-bold ${
-              activeTab === 'rankings'
-                ? 'bg-white/20'
-                : 'bg-[#2d3748]'
-            }`}>
-              {rankings.length}
-            </span>
-          </button>
+        {/* Tabs */}
+        <div className="border-b border-gray-800 mb-8">
+          <nav className="-mb-px flex space-x-8">
+            <button
+              onClick={() => setActiveTab('tournaments')}
+              className={`flex items-center gap-x-2 border-b-2 py-4 px-1 text-sm font-medium ${
+                activeTab === 'tournaments'
+                  ? 'border-indigo-500 text-white'
+                  : 'border-transparent text-gray-400 hover:border-gray-700 hover:text-white'
+              }`}
+            >
+              <Trophy className="h-5 w-5" />
+              Torneios
+              <span className={`ml-2 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                activeTab === 'tournaments' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-gray-800 text-gray-400'
+              }`}>
+                {tournaments.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab('rankings')}
+              className={`flex items-center gap-x-2 border-b-2 py-4 px-1 text-sm font-medium ${
+                activeTab === 'rankings'
+                  ? 'border-indigo-500 text-white'
+                  : 'border-transparent text-gray-400 hover:border-gray-700 hover:text-white'
+              }`}
+            >
+              <Award className="h-5 w-5" />
+              Rankings
+              <span className={`ml-2 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                activeTab === 'rankings' ? 'bg-indigo-500/10 text-indigo-400' : 'bg-gray-800 text-gray-400'
+              }`}>
+                {rankings.length}
+              </span>
+            </button>
+          </nav>
         </div>
 
         {/* Tab Content */}
         {activeTab === 'tournaments' && (
           <div>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-12 gap-6">
-              <div>
-                <h2 className="text-4xl font-bold text-white mb-3 leading-tight">Torneios</h2>
-                <p className="text-lg text-[#a0aec0] leading-relaxed">
+            <div className="sm:flex sm:items-center mb-8">
+              <div className="sm:flex-auto">
+                <h2 className="text-base font-semibold text-white">Torneios</h2>
+                <p className="mt-2 text-sm text-gray-400">
                   {tournaments.length === 0
                     ? 'Nenhum torneio criado ainda'
-                    : `${tournaments.length} ${tournaments.length === 1 ? 'torneio' : 'torneios'} cadastrado${tournaments.length === 1 ? '' : 's'}`
-                  }
+                    : `${tournaments.length} ${tournaments.length === 1 ? 'torneio' : 'torneios'}`}
                 </p>
               </div>
-              <Button
-                variant="secondary"
-                size="lg"
-                onClick={() => router.push(`/dashboard/organizations/${orgId}/tournaments/new`)}
-                className="shadow-2xl shadow-[#e1b450]/20 hover:shadow-[#e1b450]/30 transition-all duration-300"
-              >
-                <Plus size={22} strokeWidth={2.5} />
-                <span className="font-semibold">Novo Torneio</span>
-              </Button>
+              <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+                <Button
+                  variant="primary"
+                  onClick={() => router.push(`/dashboard/organizations/${orgId}/tournaments/new`)}
+                >
+                  <Plus className="h-4 w-4" />
+                  Novo Torneio
+                </Button>
+              </div>
             </div>
 
             {tournaments.length === 0 ? (
-              <Card className="backdrop-blur-xl bg-gradient-to-br from-[#1e2530]/50 to-[#1a1f29]/50 border-[#2d3748] shadow-2xl">
-                <CardContent className="p-20 text-center">
-                  <div className="inline-flex items-center justify-center w-32 h-32 rounded-3xl bg-gradient-to-br from-[#1f4baf] to-[#2557c4] mb-12 shadow-2xl shadow-[#1f4baf]/20">
-                    <Trophy size={64} className="text-white" strokeWidth={2} />
-                  </div>
-                  <h3 className="text-4xl font-bold text-white mb-6 leading-tight">
-                    Nenhum torneio criado ainda
-                  </h3>
-                  <p className="text-xl text-[#a0aec0] mb-12 max-w-2xl mx-auto leading-relaxed">
-                    Comece criando seu primeiro torneio para gerenciar competições, acompanhar resultados e organizar chaves de confronto.
-                  </p>
+              <div className="text-center rounded-lg border border-dashed border-gray-700 bg-gray-900 px-6 py-12">
+                <Trophy className="mx-auto h-12 w-12 text-gray-600" />
+                <h3 className="mt-4 text-sm font-semibold text-white">Nenhum torneio</h3>
+                <p className="mt-2 text-sm text-gray-400">
+                  Comece criando seu primeiro torneio
+                </p>
+                <div className="mt-6">
                   <Button
-                    variant="secondary"
-                    size="lg"
+                    variant="primary"
                     onClick={() => router.push(`/dashboard/organizations/${orgId}/tournaments/new`)}
-                    className="text-lg px-10 py-6 shadow-2xl shadow-[#e1b450]/20 hover:shadow-[#e1b450]/30 transition-all duration-300"
                   >
-                    <Plus size={24} strokeWidth={2.5} />
-                    <span className="font-semibold">Criar Primeiro Torneio</span>
+                    <Plus className="h-4 w-4" />
+                    Novo Torneio
                   </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                {tournaments.map((tournament) => (
-                  <Card
-                    key={tournament._id}
-                    className="group backdrop-blur-xl bg-gradient-to-br from-[#1e2530]/50 to-[#1a1f29]/50 border-[#2d3748] hover:border-[#e1b450]/30 transition-all duration-500 shadow-2xl hover:shadow-[#e1b450]/10 cursor-pointer"
-                    onClick={() => router.push(`/dashboard/organizations/${orgId}/tournaments/${tournament._id}`)}
-                  >
-                    <CardContent className="p-8">
-                      <div className="flex items-start justify-between mb-6">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#e1b450] to-[#ffc015] flex items-center justify-center shadow-lg shadow-[#e1b450]/20 group-hover:scale-110 transition-transform duration-300">
-                          <Trophy size={32} className="text-[#0f1419]" strokeWidth={2.5} />
-                        </div>
-                      </div>
-
-                      <h4 className="text-2xl font-bold text-white mb-6 leading-tight group-hover:text-[#e1b450] transition-colors duration-300">
-                        {tournament.name}
-                      </h4>
-
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-3 text-[#a0aec0]">
-                          <div className="w-10 h-10 rounded-xl bg-[#2d3748]/50 flex items-center justify-center">
-                            <Calendar size={18} className="text-[#e1b450]" strokeWidth={2} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold uppercase tracking-wide mb-1">Período</p>
-                            <p className="text-sm font-medium text-white">
-                              {new Date(tournament.gamesStartDate).toLocaleDateString('pt-BR')} - {new Date(tournament.gamesEndDate).toLocaleDateString('pt-BR')}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 text-[#a0aec0]">
-                          <div className="w-10 h-10 rounded-xl bg-[#2d3748]/50 flex items-center justify-center">
-                            <MapPin size={18} className="text-[#e1b450]" strokeWidth={2} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-semibold uppercase tracking-wide mb-1">Localização</p>
-                            <p className="text-sm font-medium text-white">
-                              {tournament.location.city}/{tournament.location.state}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                </div>
               </div>
+            ) : (
+              <ul role="list" className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {tournaments.map((tournament) => (
+                  <li
+                    key={tournament._id}
+                    onClick={() => router.push(`/dashboard/organizations/${orgId}/tournaments/${tournament._id}`)}
+                    className="col-span-1 divide-y divide-gray-800 rounded-lg bg-gray-900 shadow-sm hover:bg-gray-800/80 cursor-pointer transition-colors"
+                  >
+                    <div className="flex w-full items-center justify-between space-x-6 p-6">
+                      <div className="flex-1 truncate">
+                        <div className="flex items-center gap-x-3">
+                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-600">
+                            <Trophy className="h-5 w-5 text-white" />
+                          </div>
+                          <h3 className="truncate text-sm font-medium text-white">{tournament.name}</h3>
+                        </div>
+                        <div className="mt-4 space-y-2">
+                          <div className="flex items-center gap-x-2 text-xs text-gray-400">
+                            <Calendar className="h-4 w-4" />
+                            <p>{new Date(tournament.gamesStartDate).toLocaleDateString('pt-BR')} - {new Date(tournament.gamesEndDate).toLocaleDateString('pt-BR')}</p>
+                          </div>
+                          <div className="flex items-center gap-x-2 text-xs text-gray-400">
+                            <MapPin className="h-4 w-4" />
+                            <p>{tournament.location.city}/{tournament.location.state}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         )}
 
         {activeTab === 'rankings' && (
           <div>
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-12 gap-6">
-              <div>
-                <h2 className="text-4xl font-bold text-white mb-3 leading-tight">Rankings</h2>
-                <p className="text-lg text-[#a0aec0] leading-relaxed">
+            <div className="sm:flex sm:items-center mb-8">
+              <div className="sm:flex-auto">
+                <h2 className="text-base font-semibold text-white">Rankings</h2>
+                <p className="mt-2 text-sm text-gray-400">
                   {rankings.length === 0
                     ? 'Nenhum ranking criado ainda'
-                    : `${rankings.length} ${rankings.length === 1 ? 'ranking' : 'rankings'} cadastrado${rankings.length === 1 ? '' : 's'}`
-                  }
+                    : `${rankings.length} ${rankings.length === 1 ? 'ranking' : 'rankings'}`}
                 </p>
               </div>
-              <Button
-                variant="secondary"
-                size="lg"
-                onClick={() => router.push(`/dashboard/organizations/${orgId}/rankings/new`)}
-                className="shadow-2xl shadow-[#e1b450]/20 hover:shadow-[#e1b450]/30 transition-all duration-300"
-              >
-                <Plus size={22} strokeWidth={2.5} />
-                <span className="font-semibold">Novo Ranking</span>
-              </Button>
+              <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+                <Button
+                  variant="primary"
+                  onClick={() => router.push(`/dashboard/organizations/${orgId}/rankings/new`)}
+                >
+                  <Plus className="h-4 w-4" />
+                  Novo Ranking
+                </Button>
+              </div>
             </div>
 
             {rankings.length === 0 ? (
-              <Card className="backdrop-blur-xl bg-gradient-to-br from-[#1e2530]/50 to-[#1a1f29]/50 border-[#2d3748] shadow-2xl">
-                <CardContent className="p-20 text-center">
-                  <div className="inline-flex items-center justify-center w-32 h-32 rounded-3xl bg-gradient-to-br from-[#1f4baf] to-[#2557c4] mb-12 shadow-2xl shadow-[#1f4baf]/20">
-                    <Award size={64} className="text-white" strokeWidth={2} />
-                  </div>
-                  <h3 className="text-4xl font-bold text-white mb-6 leading-tight">
-                    Nenhum ranking criado ainda
-                  </h3>
-                  <p className="text-xl text-[#a0aec0] mb-12 max-w-2xl mx-auto leading-relaxed">
-                    Crie rankings para acompanhar a classificação de atletas em diferentes categorias e faixas etárias.
-                  </p>
+              <div className="text-center rounded-lg border border-dashed border-gray-700 bg-gray-900 px-6 py-12">
+                <Award className="mx-auto h-12 w-12 text-gray-600" />
+                <h3 className="mt-4 text-sm font-semibold text-white">Nenhum ranking</h3>
+                <p className="mt-2 text-sm text-gray-400">
+                  Comece criando seu primeiro ranking
+                </p>
+                <div className="mt-6">
                   <Button
-                    variant="secondary"
-                    size="lg"
+                    variant="primary"
                     onClick={() => router.push(`/dashboard/organizations/${orgId}/rankings/new`)}
-                    className="text-lg px-10 py-6 shadow-2xl shadow-[#e1b450]/20 hover:shadow-[#e1b450]/30 transition-all duration-300"
                   >
-                    <Plus size={24} strokeWidth={2.5} />
-                    <span className="font-semibold">Criar Primeiro Ranking</span>
+                    <Plus className="h-4 w-4" />
+                    Novo Ranking
                   </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
-                {rankings.map((ranking) => (
-                  <Card
-                    key={ranking._id}
-                    className="backdrop-blur-xl bg-gradient-to-br from-[#1e2530]/50 to-[#1a1f29]/50 border-[#2d3748] hover:border-[#e1b450]/30 transition-all duration-500 shadow-2xl hover:shadow-[#e1b450]/10"
-                  >
-                    <CardContent className="p-8">
-                      <div className="flex items-start justify-between mb-6">
-                        <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#e1b450] to-[#ffc015] flex items-center justify-center shadow-lg shadow-[#e1b450]/20">
-                          <Award size={32} className="text-[#0f1419]" strokeWidth={2.5} />
-                        </div>
-                        <span className={`text-xs px-4 py-2 rounded-full font-bold ${
-                          ranking.visible
-                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                            : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                        }`}>
-                          {ranking.visible ? 'Visível' : 'Oculto'}
-                        </span>
-                      </div>
-
-                      <h4 className="text-2xl font-bold text-white mb-6 leading-tight">
-                        {ranking.name}
-                      </h4>
-
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between p-4 bg-[#1a1f29]/50 rounded-xl border border-[#2d3748]">
-                          <span className="text-sm font-semibold text-[#a0aec0] uppercase tracking-wide">Categoria</span>
-                          <span className="text-sm font-bold text-[#e1b450]">{ranking.category}</span>
-                        </div>
-
-                        <div className="flex items-center justify-between p-4 bg-[#1a1f29]/50 rounded-xl border border-[#2d3748]">
-                          <span className="text-sm font-semibold text-[#a0aec0] uppercase tracking-wide">Gênero</span>
-                          <span className="text-sm font-bold text-white">{ranking.gender}</span>
-                        </div>
-
-                        {ranking.minAge && ranking.maxAge && (
-                          <div className="flex items-center justify-between p-4 bg-[#1a1f29]/50 rounded-xl border border-[#2d3748]">
-                            <span className="text-sm font-semibold text-[#a0aec0] uppercase tracking-wide">Faixa Etária</span>
-                            <span className="text-sm font-bold text-white">{ranking.minAge} - {ranking.maxAge} anos</span>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                </div>
               </div>
+            ) : (
+              <ul role="list" className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {rankings.map((ranking) => (
+                  <li key={ranking._id} className="col-span-1 divide-y divide-gray-800 rounded-lg bg-gray-900 shadow-sm">
+                    <div className="flex w-full items-center justify-between space-x-6 p-6">
+                      <div className="flex-1 truncate">
+                        <div className="flex items-center justify-between gap-x-3 mb-4">
+                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-600">
+                            <Award className="h-5 w-5 text-white" />
+                          </div>
+                          <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                            ranking.visible
+                              ? 'bg-green-500/10 text-green-400 inset-ring inset-ring-green-500/20'
+                              : 'bg-red-500/10 text-red-400 inset-ring inset-ring-red-500/20'
+                          }`}>
+                            {ranking.visible ? 'Visível' : 'Oculto'}
+                          </span>
+                        </div>
+                        <h3 className="text-sm font-medium text-white mb-4">{ranking.name}</h3>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-400">Categoria</span>
+                            <span className="font-medium text-white">{ranking.category}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-400">Gênero</span>
+                            <span className="font-medium text-white">{ranking.gender}</span>
+                          </div>
+                          {ranking.minAge && ranking.maxAge && (
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-gray-400">Faixa Etária</span>
+                              <span className="font-medium text-white">{ranking.minAge} - {ranking.maxAge} anos</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         )}
-      </PageLayout>
+      </div>
     </div>
   );
 }

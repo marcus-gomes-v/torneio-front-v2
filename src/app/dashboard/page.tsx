@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { organizationsService, Organization } from '../../services/organizations';
 import { Trash2, Edit, Eye, Plus, LogOut, Building2, Mail, Phone, MapPin, Trophy, Users, TrendingUp } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import { Dialog } from '../../components/ui/Dialog';
 
 export default function Dashboard() {
   const { user, signOut, loading: authLoading } = useAuth();
@@ -13,6 +14,9 @@ export default function Dashboard() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; org: Organization | null }>({ open: false, org: null });
+  const [logoutDialog, setLogoutDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -39,25 +43,24 @@ export default function Dashboard() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja deletar esta organização?')) {
-      return;
-    }
+  const handleDelete = async () => {
+    if (!deleteDialog.org) return;
 
     try {
-      await organizationsService.delete(id);
-      setOrganizations(organizations.filter(org => org._id !== id));
+      setDeleting(true);
+      await organizationsService.delete(deleteDialog.org._id);
+      setOrganizations(organizations.filter(org => org._id !== deleteDialog.org!._id));
+      setDeleteDialog({ open: false, org: null });
     } catch (err) {
-      alert('Erro ao deletar organização');
       console.error(err);
+    } finally {
+      setDeleting(false);
     }
   };
 
   const handleLogout = async () => {
-    if (confirm('Deseja realmente sair?')) {
-      await signOut();
-      router.push('/');
-    }
+    await signOut();
+    router.push('/');
   };
 
   const getTypeLabel = (type: string) => {
@@ -117,7 +120,7 @@ export default function Dashboard() {
                 <p className="text-xs text-gray-400">Administrador</p>
               </div>
             </div>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
+            <Button variant="ghost" size="sm" onClick={() => setLogoutDialog(true)}>
               <LogOut className="h-4 w-4" />
               Sair
             </Button>
@@ -182,47 +185,38 @@ export default function Dashboard() {
           <ul role="list" className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {organizations.map((org) => (
               <li key={org._id} className="col-span-1 divide-y divide-gray-800 rounded-lg bg-gray-900 shadow-sm">
-                {/* Cover */}
-                <div className="relative h-32 overflow-hidden rounded-t-lg">
-                  {org.coverImage ? (
-                    <img src={org.coverImage} alt={org.name} className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="h-full w-full bg-gradient-to-br from-indigo-600 to-indigo-800" />
-                  )}
-                  <div className="absolute right-3 top-3">
-                    <span className={`inline-flex items-center gap-x-1.5 rounded-full px-2 py-1 text-xs font-medium ${getTypeBadgeColor(org.type)}`}>
-                      <Building2 className="h-3 w-3" />
-                      {getTypeLabel(org.type)}
-                    </span>
-                  </div>
-                </div>
-
                 {/* Content */}
-                <div className="flex w-full items-center justify-between space-x-6 p-6">
-                  <div className="flex-1 truncate">
-                    <div className="flex items-center space-x-3">
-                      <div className="relative -mt-16 flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-800 text-2xl font-bold text-white shadow-lg">
+                <div className="p-6">
+                  <div className="flex items-center justify-between gap-x-4 mb-6">
+                    <div className="flex items-center gap-x-4">
+                      <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-800 text-xl font-bold text-white shadow-lg">
                         {org.profileImage ? (
                           <img src={org.profileImage} alt={org.name} className="h-full w-full rounded-lg object-cover" />
                         ) : (
                           org.name.charAt(0).toUpperCase()
                         )}
                       </div>
-                      <h3 className="truncate text-sm font-medium text-white">{org.name}</h3>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="truncate text-sm font-medium text-white">{org.name}</h3>
+                      </div>
                     </div>
-                    <div className="mt-4 space-y-2">
-                      <div className="flex items-center gap-x-2 text-xs text-gray-400">
-                        <Mail className="h-4 w-4" />
-                        <p className="truncate">{org.email}</p>
-                      </div>
-                      <div className="flex items-center gap-x-2 text-xs text-gray-400">
-                        <Phone className="h-4 w-4" />
-                        <p>{org.phone}</p>
-                      </div>
-                      <div className="flex items-center gap-x-2 text-xs text-gray-400">
-                        <MapPin className="h-4 w-4" />
-                        <p>{org.address.city}, {org.address.state}</p>
-                      </div>
+                    <span className={`inline-flex items-center gap-x-1.5 rounded-full px-2 py-1 text-xs font-medium ${getTypeBadgeColor(org.type)}`}>
+                      <Building2 className="h-3 w-3" />
+                      {getTypeLabel(org.type)}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-x-2 text-xs text-gray-400">
+                      <Mail className="h-4 w-4" />
+                      <p className="truncate">{org.email}</p>
+                    </div>
+                    <div className="flex items-center gap-x-2 text-xs text-gray-400">
+                      <Phone className="h-4 w-4" />
+                      <p>{org.phone}</p>
+                    </div>
+                    <div className="flex items-center gap-x-2 text-xs text-gray-400">
+                      <MapPin className="h-4 w-4" />
+                      <p>{org.address.city}, {org.address.state}</p>
                     </div>
                   </div>
                 </div>
@@ -249,7 +243,7 @@ export default function Dashboard() {
                   </div>
                   <div className="-ml-px flex w-0 flex-1">
                     <button
-                      onClick={() => handleDelete(org._id)}
+                      onClick={() => setDeleteDialog({ open: true, org })}
                       className="relative inline-flex w-0 flex-1 items-center justify-center gap-x-2 rounded-br-lg border border-transparent py-4 text-sm font-semibold text-red-400 hover:text-red-300"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -262,6 +256,30 @@ export default function Dashboard() {
           </ul>
         )}
       </div>
+
+      {/* Delete Dialog */}
+      <Dialog
+        open={deleteDialog.open}
+        onClose={() => setDeleteDialog({ open: false, org: null })}
+        title="Deletar Organização"
+        description={`Tem certeza que deseja deletar "${deleteDialog.org?.name}"? Esta ação não pode ser desfeita.`}
+        onConfirm={handleDelete}
+        confirmText="Deletar"
+        cancelText="Cancelar"
+        variant="danger"
+        loading={deleting}
+      />
+
+      {/* Logout Dialog */}
+      <Dialog
+        open={logoutDialog}
+        onClose={() => setLogoutDialog(false)}
+        title="Sair"
+        description="Deseja realmente sair da sua conta?"
+        onConfirm={handleLogout}
+        confirmText="Sair"
+        cancelText="Cancelar"
+      />
     </div>
   );
 }
