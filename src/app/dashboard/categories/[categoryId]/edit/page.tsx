@@ -3,41 +3,34 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { useAuth } from '../../../../../../../../contexts/AuthContext';
-import { categoriesService, Category } from '../../../../../../../../services/categories';
-import { rankingsService, Ranking } from '../../../../../../../../services/rankings';
+import { useAuth } from '../../../../../contexts/AuthContext';
+import { categoriesService, Category } from '../../../../../services/categories';
+import { rankingsService, Ranking } from '../../../../../services/rankings';
 import { ArrowLeft } from 'lucide-react';
-import { Button } from '../../../../../../../../components/ui/Button';
+import { Button } from '../../../../../components/ui/Button';
 
 type CategoryFormData = Omit<Category, '_id'>;
 
-export default function NewCategory() {
+export default function EditCategory() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
-  const orgId = params.orgId as string;
-  const tournamentId = params.tournamentId as string;
+  const categoryId = params.categoryId as string;
 
+  const [category, setCategory] = useState<Category | null>(null);
   const [rankings, setRankings] = useState<Ranking[]>([]);
   const [loadingRankings, setLoadingRankings] = useState(true);
+  const [loadingCategory, setLoadingCategory] = useState(true);
+  const [orgId, setOrgId] = useState<string>('');
+  const [tournamentId, setTournamentId] = useState<string>('');
 
   const {
     register,
     handleSubmit,
     watch,
+    reset,
     formState: { errors, isSubmitting },
-  } = useForm<CategoryFormData>({
-    defaultValues: {
-      tournamentId,
-      gameFormat: {
-        type: 'simples',
-        scoreType: 'sets_games',
-      },
-      audience: {
-        gender: 'livre',
-      },
-    },
-  });
+  } = useForm<CategoryFormData>();
 
   const scoreType = watch('gameFormat.scoreType');
 
@@ -48,22 +41,48 @@ export default function NewCategory() {
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    const fetchRankings = async () => {
-      try {
-        setLoadingRankings(true);
-        const response = await rankingsService.getAll(orgId);
-        setRankings(response.data);
-      } catch (error) {
-        console.error('Erro ao buscar rankings:', error);
-      } finally {
-        setLoadingRankings(false);
-      }
-    };
+    loadCategory();
+  }, [categoryId]);
 
+  useEffect(() => {
     if (orgId) {
       fetchRankings();
     }
   }, [orgId]);
+
+  const loadCategory = async () => {
+    try {
+      setLoadingCategory(true);
+      const response = await categoriesService.getOne(categoryId);
+      const categoryData = response.data;
+      setCategory(categoryData);
+      setTournamentId(categoryData.tournamentId);
+
+      // Get orgId from tournament
+      const { tournamentsService } = await import('../../../../../services/tournaments');
+      const tournamentResponse = await tournamentsService.getOne(categoryData.tournamentId);
+      setOrgId(tournamentResponse.data.organizationId);
+
+      reset(categoryData);
+    } catch (error) {
+      console.error('Erro ao carregar categoria:', error);
+      alert('Erro ao carregar categoria');
+    } finally {
+      setLoadingCategory(false);
+    }
+  };
+
+  const fetchRankings = async () => {
+    try {
+      setLoadingRankings(true);
+      const response = await rankingsService.getAll(orgId);
+      setRankings(response.data);
+    } catch (error) {
+      console.error('Erro ao buscar rankings:', error);
+    } finally {
+      setLoadingRankings(false);
+    }
+  };
 
   const onSubmit = async (data: CategoryFormData) => {
     try {
@@ -73,15 +92,15 @@ export default function NewCategory() {
         tournamentId,
       };
 
-      await categoriesService.create(submitData);
-      router.push(`/dashboard/organizations/${orgId}/tournaments/${tournamentId}`);
+      await categoriesService.update(categoryId, submitData);
+      router.push(`/dashboard/categories/${categoryId}`);
     } catch (error) {
-      console.error('Erro ao criar categoria:', error);
-      alert('Erro ao criar categoria. Por favor, tente novamente.');
+      console.error('Erro ao atualizar categoria:', error);
+      alert('Erro ao atualizar categoria. Por favor, tente novamente.');
     }
   };
 
-  if (authLoading || loadingRankings) {
+  if (authLoading || loadingRankings || loadingCategory) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-950">
         <div className="text-center">
@@ -100,31 +119,31 @@ export default function NewCategory() {
           <div className="mb-8">
             <button
               type="button"
-              onClick={() => router.push(`/dashboard/organizations/${orgId}/tournaments/${tournamentId}`)}
+              onClick={() => router.push(`/dashboard/categories/${categoryId}`)}
               className="inline-flex items-center gap-x-2 text-sm font-semibold text-gray-400 hover:text-white mb-6"
             >
               <ArrowLeft className="h-4 w-4" />
-              Voltar para Torneio
+              Voltar para Categoria
             </button>
             <div className="md:flex md:items-center md:justify-between">
               <div className="min-w-0 flex-1">
                 <h2 className="text-2xl font-bold text-white sm:text-3xl sm:tracking-tight">
-                  Nova Categoria
+                  Editar Categoria
                 </h2>
                 <p className="mt-1 text-sm text-gray-400">
-                  Preencha os dados da categoria do torneio
+                  Atualize os dados da categoria
                 </p>
               </div>
               <div className="mt-4 flex md:ml-4 md:mt-0 gap-3">
                 <Button
                   type="button"
                   variant="secondary"
-                  onClick={() => router.push(`/dashboard/organizations/${orgId}/tournaments/${tournamentId}`)}
+                  onClick={() => router.push(`/dashboard/categories/${categoryId}`)}
                 >
                   Cancelar
                 </Button>
                 <Button type="submit" variant="primary" disabled={isSubmitting}>
-                  {isSubmitting ? 'Criando...' : 'Criar Categoria'}
+                  {isSubmitting ? 'Atualizando...' : 'Atualizar Categoria'}
                 </Button>
               </div>
             </div>

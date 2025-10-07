@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useAuth } from '../../../../../../../contexts/AuthContext';
-import { tournamentsService, Tournament } from '../../../../../../../services/tournaments';
-import { categoriesService, Category } from '../../../../../../../services/categories';
-import { ArrowLeft, Plus, Calendar, MapPin, Users, DollarSign, Award, Settings } from 'lucide-react';
+import { useAuth } from '../../../../../../contexts/AuthContext';
+import { tournamentsService, Tournament } from '../../../../../../services/tournaments';
+import { categoriesService, Category } from '../../../../../../services/categories';
+import { ArrowLeft, Plus, Calendar, MapPin, Users, Trophy, Settings, Award, Pencil } from 'lucide-react';
+import { Button } from '../../../../../../components/ui/Button';
 
 export default function TournamentDetails() {
   const { user, loading: authLoading } = useAuth();
@@ -75,292 +76,260 @@ export default function TournamentDetails() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#222325]">
-        <div className="text-2xl text-[#dddcda]">Carregando...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+        <div className="text-center">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+          <p className="mt-4 text-sm text-gray-400">Carregando...</p>
+        </div>
       </div>
     );
   }
 
   if (error || !tournament) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#222325]">
-        <div className="text-2xl text-red-500">{error || 'Torneio não encontrado'}</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-950 px-6">
+        <div className="text-center">
+          <p className="text-sm font-semibold text-red-400">{error || 'Torneio não encontrado'}</p>
+          <Button variant="primary" onClick={loadTournamentData} className="mt-4">
+            Tentar Novamente
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#222325] text-[#dddcda]">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gray-950">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {/* Back Button */}
         <button
           onClick={() => router.push(`/dashboard/organizations/${orgId}`)}
-          className="flex items-center gap-2 text-[#e1b450] hover:text-[#d4a43d] mb-6 transition-colors duration-200"
+          className="inline-flex items-center gap-x-2 text-sm font-semibold text-gray-400 hover:text-white mb-8"
         >
-          <ArrowLeft size={20} />
+          <ArrowLeft className="h-4 w-4" />
           Voltar para Organização
         </button>
 
         {/* Tournament Header */}
-        <div className="bg-[#2a2c2e] rounded-lg p-8 mb-8 border border-[#3a3c3e]">
-          <div className="flex items-start justify-between mb-6">
-            <div>
-              <h1 className="text-4xl font-bold text-[#e1b450] mb-2">
-                {tournament.name}
-              </h1>
-              {tournament.automate && (
-                <span className="inline-block bg-[#1f4baf] text-white text-sm px-4 py-1 rounded-full">
-                  Automatizado
-                </span>
+        <div className="mb-12">
+          <div className="overflow-hidden rounded-lg bg-gray-900 shadow-sm">
+            {/* Banner */}
+            <div className="relative h-48 overflow-hidden">
+              {tournament.banner ? (
+                <img src={tournament.banner} alt={tournament.name} className="h-full w-full object-cover" />
+              ) : (
+                <div className="h-full w-full bg-gradient-to-br from-indigo-600 to-indigo-800" />
               )}
-            </div>
-          </div>
-
-          {/* Tournament Info Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Dates */}
-            <div className="bg-[#222325] rounded-lg p-4 border border-[#3a3c3e]">
-              <div className="flex items-center gap-2 mb-3">
-                <Calendar size={20} className="text-[#e1b450]" />
-                <h3 className="font-semibold">Datas</h3>
-              </div>
-              <div className="space-y-2 text-sm">
-                <div>
-                  <span className="opacity-70">Inscrições:</span>
-                  <div className="font-medium">
-                    {formatDate(tournament.registrationStartDate)} - {formatDate(tournament.registrationEndDate)}
-                  </div>
-                </div>
-                <div>
-                  <span className="opacity-70">Jogos:</span>
-                  <div className="font-medium">
-                    {formatDate(tournament.gamesStartDate)} - {formatDate(tournament.gamesEndDate)}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Location */}
-            <div className="bg-[#222325] rounded-lg p-4 border border-[#3a3c3e]">
-              <div className="flex items-center gap-2 mb-3">
-                <MapPin size={20} className="text-[#e1b450]" />
-                <h3 className="font-semibold">Local</h3>
-              </div>
-              <div className="space-y-1 text-sm">
-                <div>{tournament.location.street}</div>
-                <div>{tournament.location.neighborhood}</div>
-                <div>
-                  {tournament.location.city}, {tournament.location.state}
-                </div>
-                <div>{tournament.location.zipCode}</div>
-              </div>
-            </div>
-
-            {/* Registration */}
-            <div className="bg-[#222325] rounded-lg p-4 border border-[#3a3c3e]">
-              <div className="flex items-center gap-2 mb-3">
-                <Users size={20} className="text-[#e1b450]" />
-                <h3 className="font-semibold">Inscrições</h3>
-              </div>
-              <div className="space-y-2 text-sm">
-                <div>
-                  <span className="opacity-70">Quem pode:</span>
-                  <div className="font-medium capitalize">{tournament.whoCanRegister}</div>
-                </div>
-                <div>
-                  <span className="opacity-70">Máx. categorias:</span>
-                  <div className="font-medium">{tournament.maxCategoriesPerPlayer}</div>
-                </div>
-                <div>
-                  <span className="opacity-70">Valor:</span>
-                  <div className="font-medium">{tournament.registrationValue}</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Payment */}
-            <div className="bg-[#222325] rounded-lg p-4 border border-[#3a3c3e]">
-              <div className="flex items-center gap-2 mb-3">
-                <DollarSign size={20} className="text-[#e1b450]" />
-                <h3 className="font-semibold">Pagamento</h3>
-              </div>
-              <div className="space-y-2 text-sm">
-                <div>
-                  <span className="opacity-70">Método:</span>
-                  <div className="font-medium">{tournament.paymentMethod}</div>
-                </div>
-                {tournament.totalPrizeValue && (
-                  <div>
-                    <span className="opacity-70">Premiação Total:</span>
-                    <div className="font-medium">R$ {tournament.totalPrizeValue.toLocaleString('pt-BR')}</div>
-                  </div>
+              <div className="absolute right-6 top-6 flex gap-2">
+                {tournament.visible && (
+                  <span className="inline-flex items-center gap-x-1.5 rounded-full px-2 py-1 text-xs font-medium bg-green-500/10 text-green-400 inset-ring inset-ring-green-500/20">
+                    Visível
+                  </span>
+                )}
+                {tournament.automate && (
+                  <span className="inline-flex items-center gap-x-1.5 rounded-full px-2 py-1 text-xs font-medium bg-blue-500/10 text-blue-400 inset-ring inset-ring-blue-500/20">
+                    Automatizado
+                  </span>
                 )}
               </div>
             </div>
 
-            {/* Game Settings */}
-            <div className="bg-[#222325] rounded-lg p-4 border border-[#3a3c3e]">
-              <div className="flex items-center gap-2 mb-3">
-                <Settings size={20} className="text-[#e1b450]" />
-                <h3 className="font-semibold">Configurações</h3>
-              </div>
-              <div className="space-y-2 text-sm">
-                <div>
-                  <span className="opacity-70">Inserir placar:</span>
-                  <div className="font-medium capitalize">{tournament.whoCanInsertScore}</div>
+            {/* Info */}
+            <div className="px-6 py-8">
+              <div className="flex items-center gap-x-6 mb-8">
+                <div className="relative -mt-20 flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-800 text-3xl font-bold text-white shadow-lg">
+                  {tournament.avatar ? (
+                    <img src={tournament.avatar} alt={tournament.name} className="h-full w-full rounded-lg object-cover" />
+                  ) : (
+                    <Trophy className="h-12 w-12" />
+                  )}
                 </div>
-                <div>
-                  <span className="opacity-70">Agendamento:</span>
-                  <div className="font-medium capitalize">{tournament.gameScheduling}</div>
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-2xl font-semibold text-white">{tournament.name}</h1>
+                  <p className="mt-1 text-sm text-gray-400">Detalhes e categorias do torneio</p>
                 </div>
+                <Button
+                  variant="secondary"
+                  onClick={() => router.push(`/dashboard/organizations/${orgId}/tournaments/${tournamentId}/edit`)}
+                >
+                  <Pencil className="h-4 w-4" />
+                  Editar Torneio
+                </Button>
               </div>
-            </div>
 
-            {/* Prizes Info */}
-            {tournament.prizesDescription && (
-              <div className="bg-[#222325] rounded-lg p-4 border border-[#3a3c3e]">
-                <div className="flex items-center gap-2 mb-3">
-                  <Award size={20} className="text-[#e1b450]" />
-                  <h3 className="font-semibold">Prêmios</h3>
+              {/* Info Grid */}
+              <dl className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="overflow-hidden rounded-lg bg-gray-800/50 px-4 py-5 sm:p-6">
+                  <dt className="flex items-center gap-x-2 text-sm font-medium text-gray-400">
+                    <Calendar className="h-4 w-4" />
+                    Inscrições
+                  </dt>
+                  <dd className="mt-1 text-sm font-semibold text-white">
+                    {formatDate(tournament.registrationStartDate)} - {formatDate(tournament.registrationEndDate)}
+                  </dd>
                 </div>
-                <div className="text-sm">
-                  {tournament.prizesDescription}
+                <div className="overflow-hidden rounded-lg bg-gray-800/50 px-4 py-5 sm:p-6">
+                  <dt className="flex items-center gap-x-2 text-sm font-medium text-gray-400">
+                    <Calendar className="h-4 w-4" />
+                    Jogos
+                  </dt>
+                  <dd className="mt-1 text-sm font-semibold text-white">
+                    {formatDate(tournament.gamesStartDate)} - {formatDate(tournament.gamesEndDate)}
+                  </dd>
                 </div>
-              </div>
-            )}
+                {tournament.locations && tournament.locations.length > 0 && (
+                  <div className="overflow-hidden rounded-lg bg-gray-800/50 px-4 py-5 sm:p-6">
+                    <dt className="flex items-center gap-x-2 text-sm font-medium text-gray-400">
+                      <MapPin className="h-4 w-4" />
+                      Local
+                    </dt>
+                    <dd className="mt-1 text-sm font-semibold text-white">
+                      {tournament.locations[0].city}, {tournament.locations[0].state}
+                    </dd>
+                  </div>
+                )}
+                <div className="overflow-hidden rounded-lg bg-gray-800/50 px-4 py-5 sm:p-6">
+                  <dt className="flex items-center gap-x-2 text-sm font-medium text-gray-400">
+                    <Users className="h-4 w-4" />
+                    Máx. Categorias
+                  </dt>
+                  <dd className="mt-1 text-sm font-semibold text-white">
+                    {tournament.maxCategoriesPerPlayer} por jogador
+                  </dd>
+                </div>
+              </dl>
+
+              {/* Additional Info Sections */}
+              {tournament.playerInfo && (
+                <div className="mt-6 rounded-lg bg-gray-800/50 px-4 py-5 sm:p-6">
+                  <h3 className="text-sm font-medium text-gray-400 mb-2">Informações para Jogadores</h3>
+                  <p className="text-sm text-white whitespace-pre-wrap">{tournament.playerInfo}</p>
+                </div>
+              )}
+
+              {tournament.prizeDescription && (
+                <div className="mt-6 rounded-lg bg-gray-800/50 px-4 py-5 sm:p-6">
+                  <h3 className="text-sm font-medium text-gray-400 mb-2 flex items-center gap-2">
+                    <Award className="h-4 w-4" />
+                    Premiação
+                  </h3>
+                  <p className="text-sm text-white whitespace-pre-wrap">{tournament.prizeDescription}</p>
+                  {tournament.totalPrizeValue && (
+                    <p className="mt-2 text-sm font-semibold text-indigo-400">
+                      Valor Total: {tournament.totalPrizeValue}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {tournament.tournamentRules && (
+                <div className="mt-6 rounded-lg bg-gray-800/50 px-4 py-5 sm:p-6">
+                  <h3 className="text-sm font-medium text-gray-400 mb-2 flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    Regulamento
+                  </h3>
+                  <p className="text-sm text-white whitespace-pre-wrap">{tournament.tournamentRules}</p>
+                </div>
+              )}
+            </div>
           </div>
-
-          {/* Additional Info */}
-          {tournament.playerInfo && (
-            <div className="mt-6 bg-[#222325] rounded-lg p-4 border border-[#3a3c3e]">
-              <h3 className="font-semibold mb-2">Informações do Jogador</h3>
-              <p className="text-sm opacity-80">{tournament.playerInfo}</p>
-            </div>
-          )}
-
-          {tournament.waitingListGuidance && (
-            <div className="mt-4 bg-[#222325] rounded-lg p-4 border border-[#3a3c3e]">
-              <h3 className="font-semibold mb-2">Lista de Espera</h3>
-              <p className="text-sm opacity-80">{tournament.waitingListGuidance}</p>
-            </div>
-          )}
-
-          {tournament.regulations && (
-            <div className="mt-4 bg-[#222325] rounded-lg p-4 border border-[#3a3c3e]">
-              <h3 className="font-semibold mb-2">Regulamento</h3>
-              <p className="text-sm opacity-80 whitespace-pre-wrap">{tournament.regulations}</p>
-            </div>
-          )}
         </div>
 
         {/* Categories Section */}
         <div>
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold text-[#e1b450]">
-              Categorias
-              <span className="ml-3 text-lg text-[#dddcda] opacity-60">
-                ({categories.length})
-              </span>
-            </h2>
-            <button
-              onClick={() => router.push(`/dashboard/organizations/${orgId}/tournaments/${tournamentId}/categories/new`)}
-              className="flex items-center gap-2 bg-[#1f4baf] hover:bg-[#1a3d8f] text-white font-semibold py-3 px-5 rounded-lg transition-colors duration-200"
-            >
-              <Plus size={20} />
-              Nova Categoria
-            </button>
+          <div className="sm:flex sm:items-center mb-8">
+            <div className="sm:flex-auto">
+              <h2 className="text-base font-semibold text-white">Categorias</h2>
+              <p className="mt-2 text-sm text-gray-400">
+                {categories.length === 0
+                  ? 'Nenhuma categoria criada ainda'
+                  : `${categories.length} ${categories.length === 1 ? 'categoria' : 'categorias'}`}
+              </p>
+            </div>
+            <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+              <Button
+                variant="primary"
+                onClick={() => router.push(`/dashboard/organizations/${orgId}/tournaments/${tournamentId}/categories/new`)}
+              >
+                <Plus className="h-4 w-4" />
+                Nova Categoria
+              </Button>
+            </div>
           </div>
 
           {categories.length === 0 ? (
-            <div className="bg-[#2a2c2e] rounded-lg p-12 text-center border border-[#3a3c3e]">
-              <Award size={48} className="mx-auto mb-4 text-[#e1b450] opacity-50" />
-              <p className="text-lg mb-4 opacity-70">Nenhuma categoria cadastrada</p>
-              <button
-                onClick={() => router.push(`/dashboard/organizations/${orgId}/tournaments/${tournamentId}/categories/new`)}
-                className="inline-flex items-center gap-2 bg-[#e1b450] hover:bg-[#d4a43d] text-[#222325] font-semibold py-3 px-5 rounded-lg transition-colors duration-200"
-              >
-                <Plus size={20} />
-                Criar primeira categoria
-              </button>
+            <div className="text-center rounded-lg border border-dashed border-gray-700 bg-gray-900 px-6 py-12">
+              <Trophy className="mx-auto h-12 w-12 text-gray-600" />
+              <h3 className="mt-4 text-sm font-semibold text-white">Nenhuma categoria</h3>
+              <p className="mt-2 text-sm text-gray-400">
+                Comece criando a primeira categoria do torneio
+              </p>
+              <div className="mt-6">
+                <Button
+                  variant="primary"
+                  onClick={() => router.push(`/dashboard/organizations/${orgId}/tournaments/${tournamentId}/categories/new`)}
+                >
+                  <Plus className="h-4 w-4" />
+                  Nova Categoria
+                </Button>
+              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <ul role="list" className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {categories.map((category) => (
-                <div
+                <li
                   key={category._id}
                   onClick={() => router.push(`/dashboard/categories/${category._id}`)}
-                  className="bg-[#2a2c2e] rounded-lg p-6 border border-[#3a3c3e] hover:border-[#e1b450] transition-all duration-200 cursor-pointer"
+                  className="col-span-1 divide-y divide-gray-800 rounded-lg bg-gray-900 shadow-sm hover:bg-gray-800/80 cursor-pointer transition-colors"
                 >
                   {category.image && (
-                    <img
-                      src={category.image}
-                      alt={category.name}
-                      className="w-full h-32 object-cover rounded-lg mb-4"
-                    />
+                    <div className="h-32 w-full overflow-hidden rounded-t-lg">
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
                   )}
+                  <div className="flex w-full items-center justify-between space-x-6 p-6">
+                    <div className="flex-1 truncate">
+                      <h3 className="truncate text-sm font-medium text-white mb-4">{category.name}</h3>
 
-                  <h3 className="text-xl font-bold text-[#e1b450] mb-4">
-                    {category.name}
-                  </h3>
-
-                  <div className="space-y-3 text-sm">
-                    {/* Dispute Model */}
-                    <div className="flex items-center justify-between pb-3 border-b border-[#3a3c3e]">
-                      <span className="opacity-70">Modelo:</span>
-                      <span className="font-semibold">{getDisputeModelLabel(category.disputeModel)}</span>
-                    </div>
-
-                    {/* Game Format */}
-                    <div className="flex items-center justify-between pb-3 border-b border-[#3a3c3e]">
-                      <span className="opacity-70">Formato:</span>
-                      <span className="font-semibold capitalize">{category.gameFormat.type}</span>
-                    </div>
-
-                    {/* Participant Limit */}
-                    <div className="flex items-center justify-between pb-3 border-b border-[#3a3c3e]">
-                      <span className="opacity-70">Limite:</span>
-                      <span className="font-semibold">{category.participantLimit} participantes</span>
-                    </div>
-
-                    {/* Gender */}
-                    <div className="flex items-center justify-between pb-3 border-b border-[#3a3c3e]">
-                      <span className="opacity-70">Gênero:</span>
-                      <span className="font-semibold">{getGenderLabel(category.audience.gender)}</span>
-                    </div>
-
-                    {/* Age Range */}
-                    {(category.audience.minAge || category.audience.maxAge) && (
-                      <div className="flex items-center justify-between pb-3 border-b border-[#3a3c3e]">
-                        <span className="opacity-70">Idade:</span>
-                        <span className="font-semibold">
-                          {category.audience.minAge && category.audience.maxAge
-                            ? `${category.audience.minAge} - ${category.audience.maxAge} anos`
-                            : category.audience.minAge
-                            ? `${category.audience.minAge}+ anos`
-                            : `Até ${category.audience.maxAge} anos`}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Combined Age */}
-                    {category.audience.combinedAge && (
-                      <div className="flex items-center justify-between">
-                        <span className="opacity-70">Idade Combinada:</span>
-                        <span className="font-semibold">{category.audience.combinedAge} anos</span>
-                      </div>
-                    )}
-
-                    {/* Schedule */}
-                    <div className="pt-3 mt-3 border-t border-[#3a3c3e]">
-                      <div className="text-xs opacity-70 mb-1">Período de Inscrições</div>
-                      <div className="font-medium text-xs">
-                        {formatDate(category.schedule.registrationStart)} - {formatDate(category.schedule.registrationEnd)}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-400">Modelo</span>
+                          <span className="font-medium text-white">{getDisputeModelLabel(category.disputeModel)}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-400">Formato</span>
+                          <span className="font-medium text-white capitalize">{category.gameFormat.type}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-400">Limite</span>
+                          <span className="font-medium text-white">{category.participantLimit} participantes</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-gray-400">Gênero</span>
+                          <span className="font-medium text-white">{getGenderLabel(category.audience.gender)}</span>
+                        </div>
+                        {(category.audience.minAge || category.audience.maxAge) && (
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-gray-400">Idade</span>
+                            <span className="font-medium text-white">
+                              {category.audience.minAge && category.audience.maxAge
+                                ? `${category.audience.minAge} - ${category.audience.maxAge} anos`
+                                : category.audience.minAge
+                                ? `${category.audience.minAge}+ anos`
+                                : `Até ${category.audience.maxAge} anos`}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
       </div>

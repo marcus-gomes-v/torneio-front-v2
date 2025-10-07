@@ -3,14 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { useAuth } from '../../../../../../contexts/AuthContext';
-import { tournamentsService, Tournament } from '../../../../../../services/tournaments';
-import { sportsService, Sport } from '../../../../../../services/sports';
-import { tournamentRolesService, TournamentRole } from '../../../../../../services/tournament-roles';
+import { useAuth } from '../../../../../../../contexts/AuthContext';
+import { tournamentsService, Tournament } from '../../../../../../../services/tournaments';
+import { sportsService, Sport } from '../../../../../../../services/sports';
+import { tournamentRolesService, TournamentRole } from '../../../../../../../services/tournament-roles';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
-import { Dialog } from '../../../../../../components/ui/Dialog';
-import { ImageUpload } from '../../../../../../components/ui/ImageUpload';
-import { UserEmailAutocomplete } from '../../../../../../components/ui/UserEmailAutocomplete';
+import { Dialog } from '../../../../../../../components/ui/Dialog';
+import { ImageUpload } from '../../../../../../../components/ui/ImageUpload';
+import { UserEmailAutocomplete } from '../../../../../../../components/ui/UserEmailAutocomplete';
 
 type TournamentFormData = Omit<Tournament, '_id'>;
 
@@ -35,16 +35,19 @@ interface Location {
   zipCode: string;
 }
 
-export default function NewTournament() {
+export default function EditTournament() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
   const orgId = params.orgId as string;
+  const tournamentId = params.tournamentId as string;
 
+  const [tournament, setTournament] = useState<Tournament | null>(null);
   const [sports, setSports] = useState<Sport[]>([]);
   const [tournamentRoles, setTournamentRoles] = useState<TournamentRole[]>([]);
   const [loadingSports, setLoadingSports] = useState(true);
   const [loadingRoles, setLoadingRoles] = useState(true);
+  const [loadingTournament, setLoadingTournament] = useState(true);
   const [errorDialog, setErrorDialog] = useState({ open: false, message: '' });
   const [avatar, setAvatar] = useState<string | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
@@ -55,37 +58,9 @@ export default function NewTournament() {
     register,
     handleSubmit,
     watch,
+    reset,
     formState: { errors, isSubmitting },
-  } = useForm<TournamentFormData>({
-    defaultValues: {
-      organizationId: orgId,
-      visible: true,
-      automate: false,
-      whoCanRegister: '',
-      maxCategoriesPerPlayer: '',
-      feeKind: '',
-      chargingKind: '',
-      allowWaitingList: false,
-      automaticWaitingListInclusion: false,
-      hideWaitingListPlayers: false,
-      allowTimeRestrictions: false,
-      showInstagramField: false,
-      provideShirts: false,
-      showOpponentContact: false,
-      allowPartnerChange: false,
-      hideRegisteredPlayers: false,
-      requireCPF: false,
-      requireCity: false,
-      autoDeleteUnpaidRegistrations: false,
-      showTeamContact: false,
-      whoCanInsertScore: 'admin',
-      gameScheduling: 'admin',
-      waitingListOrientation: 'Esta categoria atingiu o limite de inscritos e você está na fila de espera.\n\nPor gentileza aguarde o contato do administrador do torneio para que sua inscrição seja confirmada.',
-      prizeDescription: '',
-      totalPrizeValue: '',
-      tournamentRules: '',
-    },
-  });
+  } = useForm<TournamentFormData>();
 
 
   useEffect(() => {
@@ -97,7 +72,8 @@ export default function NewTournament() {
   useEffect(() => {
     loadSports();
     loadTournamentRoles();
-  }, []);
+    loadTournament();
+  }, [tournamentId]);
 
   const loadSports = async () => {
     try {
@@ -118,6 +94,67 @@ export default function NewTournament() {
       console.error('Erro ao carregar cargos:', error);
     } finally {
       setLoadingRoles(false);
+    }
+  };
+
+  const loadTournament = async () => {
+    try {
+      setLoadingTournament(true);
+      const response = await tournamentsService.getOne(tournamentId);
+      const tournamentData = response.data;
+      setTournament(tournamentData);
+
+      // Set avatar and banner
+      setAvatar(tournamentData.avatar || null);
+      setBanner(tournamentData.banner || null);
+
+      // Set locations
+      setLocations(tournamentData.locations || []);
+
+      // Set team members
+      if (tournamentData.team && tournamentData.team.length > 0) {
+        setTeamMembers(tournamentData.team.map((member: any) => ({
+          user: {
+            _id: member.userId,
+            email: member.email,
+            displayName: member.displayName,
+            photoURL: member.photoURL,
+          },
+          role: member.role,
+        })));
+      }
+
+      // Format dates to YYYY-MM-DD for date inputs
+      const formatDateForInput = (dateString: string) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toISOString().split('T')[0];
+      };
+
+      // Extract fee fields from fees Map
+      const feeFields: any = {};
+      if (tournamentData.fees) {
+        Object.entries(tournamentData.fees).forEach(([key, value]) => {
+          feeFields[key] = value;
+        });
+      }
+
+      // Reset form with properly formatted tournament data
+      reset({
+        ...tournamentData,
+        organizationId: orgId,
+        sportId: tournamentData.sportId?._id || tournamentData.sportId,
+        registrationStartDate: formatDateForInput(tournamentData.registrationStartDate),
+        registrationEndDate: formatDateForInput(tournamentData.registrationEndDate),
+        gamesStartDate: formatDateForInput(tournamentData.gamesStartDate),
+        gamesEndDate: formatDateForInput(tournamentData.gamesEndDate),
+        ...feeFields,
+      });
+    } catch (error) {
+      console.error('Erro ao carregar torneio:', error);
+      setErrorDialog({ open: true, message: 'Erro ao carregar torneio' });
+    } finally {
+      setLoadingTournament(false);
     }
   };
 
@@ -151,8 +188,21 @@ export default function NewTournament() {
 
   const onSubmit = async (data: TournamentFormData) => {
     try {
-      await tournamentsService.create({
-        ...data,
+      // Remove fields that shouldn't be sent to backend
+      const {
+        _id,
+        createdAt,
+        updatedAt,
+        __v,
+        ownerId,
+        fees,
+        team: _team,
+        locations: _locations,
+        ...cleanData
+      } = data as any;
+
+      await tournamentsService.update(tournamentId, {
+        ...cleanData,
         organizationId: orgId,
         avatar: avatar || undefined,
         banner: banner || undefined,
@@ -166,14 +216,14 @@ export default function NewTournament() {
           })),
         locations,
       });
-      router.push(`/dashboard/organizations/${orgId}`);
+      router.push(`/dashboard/organizations/${orgId}/tournaments/${tournamentId}`);
     } catch (error) {
-      console.error('Erro ao criar torneio:', error);
-      setErrorDialog({ open: true, message: 'Erro ao criar torneio. Por favor, tente novamente.' });
+      console.error('Erro ao atualizar torneio:', error);
+      setErrorDialog({ open: true, message: 'Erro ao atualizar torneio. Por favor, tente novamente.' });
     }
   };
 
-  if (authLoading || loadingSports || loadingRoles) {
+  if (authLoading || loadingSports || loadingRoles || loadingTournament) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-950">
         <div className="text-center">
@@ -189,15 +239,15 @@ export default function NewTournament() {
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {/* Back Button */}
         <button
-          onClick={() => router.push(`/dashboard/organizations/${orgId}`)}
+          onClick={() => router.push(`/dashboard/organizations/${orgId}/tournaments/${tournamentId}`)}
           className="inline-flex items-center gap-x-2 text-sm font-semibold text-gray-400 hover:text-white mb-8"
         >
           <ArrowLeft className="h-4 w-4" />
-          Voltar para Organização
+          Voltar para Torneio
         </button>
 
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white">Novo Torneio</h1>
+          <h1 className="text-3xl font-bold text-white">Editar Torneio</h1>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)}>
@@ -995,7 +1045,7 @@ export default function NewTournament() {
                     disabled={isSubmitting}
                     className="rounded-md bg-indigo-500 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:opacity-50"
                   >
-                    {isSubmitting ? 'Criando...' : 'Criar Torneio'}
+                    {isSubmitting ? 'Salvando...' : 'Salvar Alterações'}
                   </button>
                 </div>
               </div>
