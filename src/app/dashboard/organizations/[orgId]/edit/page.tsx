@@ -71,8 +71,8 @@ export default function EditOrganization() {
     try {
       const organizationData = {
         ...data,
-        profileImage,
-        coverImage,
+        profileImage: profileImage || undefined,
+        coverImage: coverImage || undefined,
       };
       await organizationsService.update(orgId, organizationData);
       router.push('/dashboard');

@@ -4,7 +4,10 @@ export interface Tournament {
   _id: string;
   organizationId: string;
   name: string;
-  sportId: string;
+  sportId: string | { _id: string; label: string; value: string };
+  visible?: boolean;
+  avatar?: string;
+  banner?: string;
   playerInfo?: string;
   registrationStartDate: string;
   registrationEndDate: string;
@@ -13,6 +16,9 @@ export interface Tournament {
   automate: boolean;
   whoCanRegister: string;
   maxCategoriesPerPlayer: number;
+  feeKind?: string;
+  chargingKind?: string;
+  fees?: Record<string, number>;
   registrationValue: string;
   paymentMethod: string;
   prices: {
@@ -32,11 +38,42 @@ export interface Tournament {
     street: string;
     zipCode: string;
   };
+  locations?: Array<{
+    country: string;
+    state: string;
+    city: string;
+    neighborhood: string;
+    street: string;
+    zipCode: string;
+  }>;
+  team?: Array<{
+    userId: string;
+    email: string;
+    displayName: string;
+    photoURL?: string;
+    role: string;
+  }>;
+  showTeamContact?: boolean;
+  allowWaitingList?: boolean;
+  automaticWaitingListInclusion?: boolean;
+  hideWaitingListPlayers?: boolean;
+  allowTimeRestrictions?: boolean;
+  showInstagramField?: boolean;
+  provideShirts?: boolean;
+  showOpponentContact?: boolean;
+  allowPartnerChange?: boolean;
+  hideRegisteredPlayers?: boolean;
+  requireCPF?: boolean;
+  requireCity?: boolean;
+  autoDeleteUnpaidRegistrations?: boolean;
   whoCanInsertScore: string;
   gameScheduling: string;
+  waitingListOrientation?: string;
   waitingListGuidance?: string;
+  prizeDescription?: string;
   prizesDescription?: string;
-  totalPrizeValue?: number;
+  totalPrizeValue?: number | string;
+  tournamentRules?: string;
   regulations?: string;
 }
 

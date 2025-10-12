@@ -270,10 +270,10 @@ export default function OrganizationDetails() {
                             <Calendar className="h-4 w-4" />
                             <p>{new Date(tournament.gamesStartDate).toLocaleDateString('pt-BR')} - {new Date(tournament.gamesEndDate).toLocaleDateString('pt-BR')}</p>
                           </div>
-                          {tournament.locations && tournament.locations.length > 0 && (
+                          {tournament.location && (
                             <div className="flex items-center gap-x-2 text-xs text-gray-400">
                               <MapPin className="h-4 w-4" />
-                              <p>{tournament.locations[0].city}/{tournament.locations[0].state}</p>
+                              <p>{tournament.location.city}/{tournament.location.state}</p>
                             </div>
                           )}
                         </div>

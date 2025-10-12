@@ -143,7 +143,7 @@ export default function EditTournament() {
       reset({
         ...tournamentData,
         organizationId: orgId,
-        sportId: tournamentData.sportId?._id || tournamentData.sportId,
+        sportId: typeof tournamentData.sportId === 'object' ? tournamentData.sportId._id : tournamentData.sportId,
         registrationStartDate: formatDateForInput(tournamentData.registrationStartDate),
         registrationEndDate: formatDateForInput(tournamentData.registrationEndDate),
         gamesStartDate: formatDateForInput(tournamentData.gamesStartDate),
@@ -578,7 +578,7 @@ export default function EditTournament() {
                     {/* Variable Registration Fields - Show only if feeKind is 3 */}
                     {watch('feeKind') === '3' && watch('maxCategoriesPerPlayer') && (
                       <>
-                        {Array.from({ length: parseInt(watch('maxCategoriesPerPlayer') || '0') }, (_, index) => {
+                        {Array.from({ length: parseInt(String(watch('maxCategoriesPerPlayer') || '0')) }, (_, index) => {
                           const position = index + 1;
                           const fieldName = `fee_${position}` as any;
                           const positionLabel = position === 1 ? '1ª' : position === 2 ? '2ª' : position === 3 ? '3ª' : `${position}ª`;
@@ -599,12 +599,12 @@ export default function EditTournament() {
                                   })}
                                   placeholder="0.00"
                                   className={`block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 ${
-                                    errors[fieldName] ? 'outline-red-500' : 'outline-white/10'
+                                    (errors as any)[fieldName] ? 'outline-red-500' : 'outline-white/10'
                                   } placeholder:text-gray-500 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6`}
                                 />
                               </div>
-                              {errors[fieldName] && (
-                                <p className="mt-2 text-sm text-red-400">{errors[fieldName].message}</p>
+                              {(errors as any)[fieldName] && (
+                                <p className="mt-2 text-sm text-red-400">{(errors as any)[fieldName].message}</p>
                               )}
                             </div>
                           );

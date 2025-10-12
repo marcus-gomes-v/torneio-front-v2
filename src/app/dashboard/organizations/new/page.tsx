@@ -34,8 +34,8 @@ export default function NewOrganization() {
     try {
       const organizationData = {
         ...data,
-        profileImage,
-        coverImage,
+        profileImage: profileImage || undefined,
+        coverImage: coverImage || undefined,
       };
       await organizationsService.create(organizationData);
       router.push('/dashboard');

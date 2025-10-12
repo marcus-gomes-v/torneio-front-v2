@@ -113,10 +113,10 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-x-4">
               <div className="flex h-11 w-11 items-center justify-center rounded-full bg-indigo-600">
-                <span className="text-sm font-semibold text-white">{user?.name?.charAt(0).toUpperCase()}</span>
+                <span className="text-sm font-semibold text-white">{user?.displayName?.charAt(0).toUpperCase()}</span>
               </div>
               <div>
-                <h1 className="text-sm font-semibold text-white">{user?.name}</h1>
+                <h1 className="text-sm font-semibold text-white">{user?.displayName}</h1>
                 <p className="text-xs text-gray-400">Administrador</p>
               </div>
             </div>
