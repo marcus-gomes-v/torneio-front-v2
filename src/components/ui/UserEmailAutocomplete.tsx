@@ -15,6 +15,8 @@ interface UserEmailAutocompleteProps {
   error?: string;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+
 export function UserEmailAutocomplete({
   value,
   onChange,
@@ -59,7 +61,7 @@ export function UserEmailAutocomplete({
 
       const token = await currentUser.getIdToken();
       const response = await fetch(
-        `http://localhost:3001/auth/search-users?email=${encodeURIComponent(query)}`,
+        `${API_URL}/auth/search-users?email=${encodeURIComponent(query)}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

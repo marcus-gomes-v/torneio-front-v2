@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { auth } from '../../lib/firebase';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 interface ImageUploadProps {
   label: string;
   value?: string;
@@ -61,7 +62,7 @@ export function ImageUpload({
       const token = await currentUser.getIdToken();
       console.log('Token obtained from Firebase');
 
-      const response = await fetch('http://localhost:3001/upload/image', {
+      const response = await fetch(`${API_URL}/upload/image`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
