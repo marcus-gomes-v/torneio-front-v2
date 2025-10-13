@@ -8,6 +8,7 @@ import { rankingsService, Ranking } from '../../../../../services/rankings';
 import { sportsService, Sport } from '../../../../../services/sports';
 import { ArrowLeft } from 'lucide-react';
 import { ImageUpload } from '../../../../../components/ui/ImageUpload';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 type RankingFormData = Omit<Ranking, '_id'>;
 
@@ -96,14 +97,7 @@ export default function EditRanking() {
   };
 
   if (authLoading || loadingSports || loadingRanking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-          <p className="mt-4 text-sm text-gray-400">Carregando...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (
@@ -171,7 +165,7 @@ export default function EditRanking() {
                           {...register('sportId', { required: 'Campo obrigatório' })}
                           className={`block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 ${
                             errors.sportId ? 'outline-red-500' : 'outline-white/10'
-                          } focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6`}
+                          } focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6 [&>option]:text-gray-900 [&>option]:bg-white`}
                         >
                           <option value="" className="bg-gray-900">Selecione...</option>
                           {sports.map((sport) => (
@@ -273,7 +267,7 @@ export default function EditRanking() {
                         <select
                           id="gender"
                           {...register('gender', { required: 'Campo obrigatório' })}
-                          className="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6"
+                          className="block w-full rounded-md bg-white/5 px-3 py-1.5 text-base text-white outline-1 -outline-offset-1 outline-white/10 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-500 sm:text-sm/6 [&>option]:text-gray-900 [&>option]:bg-white"
                         >
                           <option value="livre" className="bg-gray-900">Livre</option>
                           <option value="masculino" className="bg-gray-900">Masculino</option>

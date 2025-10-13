@@ -4,10 +4,17 @@ export interface Category {
   _id: string;
   tournamentId: string;
   rankingId?: string;
+  categoryTemplateId?: string;
   name: string;
   image?: string;
   disputeModel: string;
   participantLimit: number;
+  roundRobin?: {
+    numberOfGroups: number;
+    qualifiedPerGroup: number;
+  };
+  teamRaffleCriteria?: number;
+  randomTeams?: boolean;
   schedule: {
     registrationStart: string;
     registrationEnd: string;

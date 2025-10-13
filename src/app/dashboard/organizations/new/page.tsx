@@ -9,6 +9,7 @@ import { ArrowLeft } from 'lucide-react';
 import { Button } from '../../../../components/ui/Button';
 import { Dialog } from '../../../../components/ui/Dialog';
 import { ImageUpload } from '../../../../components/ui/ImageUpload';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 type OrganizationFormData = Omit<Organization, '_id'>;
 
@@ -46,14 +47,7 @@ export default function NewOrganization() {
   };
 
   if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-          <p className="mt-4 text-sm text-gray-400">Carregando...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return (

@@ -5,8 +5,9 @@ import { useRouter, useParams } from 'next/navigation';
 import { useAuth } from '../../../../../../contexts/AuthContext';
 import { tournamentsService, Tournament } from '../../../../../../services/tournaments';
 import { categoriesService, Category } from '../../../../../../services/categories';
-import { ArrowLeft, Plus, Calendar, MapPin, Users, Trophy, Settings, Award, Pencil } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, MapPin, Users, Trophy, Settings, Award, Pencil, Edit, Trash2, Eye } from 'lucide-react';
 import { Button } from '../../../../../../components/ui/Button';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export default function TournamentDetails() {
   const { user, loading: authLoading } = useAuth();
@@ -75,14 +76,7 @@ export default function TournamentDetails() {
   };
 
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-          <p className="mt-4 text-sm text-gray-400">Carregando...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (error || !tournament) {
@@ -275,61 +269,89 @@ export default function TournamentDetails() {
               </div>
             </div>
           ) : (
-            <ul role="list" className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {categories.map((category) => (
-                <li
-                  key={category._id}
-                  onClick={() => router.push(`/dashboard/categories/${category._id}`)}
-                  className="col-span-1 divide-y divide-gray-800 rounded-lg bg-gray-900 shadow-sm hover:bg-gray-800/80 cursor-pointer transition-colors"
-                >
-                  {category.image && (
-                    <div className="h-32 w-full overflow-hidden rounded-t-lg">
-                      <img
-                        src={category.image}
-                        alt={category.name}
-                        className="h-full w-full object-cover"
-                      />
-                    </div>
-                  )}
-                  <div className="flex w-full items-center justify-between space-x-6 p-6">
-                    <div className="flex-1 truncate">
-                      <h3 className="truncate text-sm font-medium text-white mb-4">{category.name}</h3>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-gray-400">Modelo</span>
-                          <span className="font-medium text-white">{getDisputeModelLabel(category.disputeModel)}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-gray-400">Formato</span>
-                          <span className="font-medium text-white capitalize">{category.gameFormat.type}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-gray-400">Limite</span>
-                          <span className="font-medium text-white">{category.participantLimit} participantes</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-gray-400">Gênero</span>
-                          <span className="font-medium text-white">{getGenderLabel(category.audience.gender)}</span>
-                        </div>
-                        {(category.audience.minAge || category.audience.maxAge) && (
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-gray-400">Idade</span>
-                            <span className="font-medium text-white">
-                              {category.audience.minAge && category.audience.maxAge
-                                ? `${category.audience.minAge} - ${category.audience.maxAge} anos`
-                                : category.audience.minAge
-                                ? `${category.audience.minAge}+ anos`
-                                : `Até ${category.audience.maxAge} anos`}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+            <div className="mt-8 flow-root">
+              <div className="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
+                <div className="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
+                  <div className="overflow-hidden shadow-sm outline-1 -outline-offset-1 outline-white/10 sm:rounded-lg">
+                    <table className="relative min-w-full divide-y divide-white/15">
+                      <thead className="bg-gray-800/75">
+                        <tr>
+                          <th scope="col" className="py-3.5 pr-3 pl-4 text-left text-sm font-semibold text-gray-200 sm:pl-6">
+                            Nome
+                          </th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-200">
+                            Modelo
+                          </th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-200">
+                            Formato
+                          </th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-200">
+                            Gênero
+                          </th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-200">
+                            Limite
+                          </th>
+                          <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-200">
+                            Idade
+                          </th>
+                          <th scope="col" className="py-3.5 pr-4 pl-3 sm:pr-6">
+                            <span className="sr-only">Ações</span>
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/10 bg-gray-800/50">
+                        {categories.map((category) => (
+                          <tr key={category._id} className="hover:bg-gray-800/75 transition-colors">
+                            <td className="py-4 pr-3 pl-4 text-sm font-medium whitespace-nowrap text-white sm:pl-6">
+                              {category.name}
+                            </td>
+                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-400">
+                              {getDisputeModelLabel(category.disputeModel)}
+                            </td>
+                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-400 capitalize">
+                              {category.gameFormat.type}
+                            </td>
+                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-400 capitalize">
+                              {getGenderLabel(category.audience.gender)}
+                            </td>
+                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-400">
+                              {category.participantLimit}
+                            </td>
+                            <td className="px-3 py-4 text-sm whitespace-nowrap text-gray-400">
+                              {category.audience.minAge || category.audience.maxAge
+                                ? category.audience.minAge && category.audience.maxAge
+                                  ? `${category.audience.minAge} - ${category.audience.maxAge}`
+                                  : category.audience.minAge
+                                  ? `${category.audience.minAge}+`
+                                  : `Até ${category.audience.maxAge}`
+                                : 'Livre'}
+                            </td>
+                            <td className="py-4 pr-4 pl-3 text-right text-sm font-medium whitespace-nowrap sm:pr-6">
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  onClick={() => router.push(`/dashboard/categories/${category._id}`)}
+                                  className="text-indigo-400 hover:text-indigo-300 transition-colors"
+                                  title="Visualizar"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </button>
+                                <button
+                                  onClick={() => router.push(`/dashboard/categories/${category._id}/edit`)}
+                                  className="text-indigo-400 hover:text-indigo-300 transition-colors"
+                                  title="Editar"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                </li>
-              ))}
-            </ul>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>

@@ -6,8 +6,9 @@ import { useAuth } from '../../../../contexts/AuthContext';
 import { organizationsService, Organization } from '../../../../services/organizations';
 import { tournamentsService, Tournament } from '../../../../services/tournaments';
 import { rankingsService, Ranking } from '../../../../services/rankings';
-import { ArrowLeft, Plus, Trophy, Award, Mail, Phone, MapPin, Building2, Calendar, Edit } from 'lucide-react';
+import { ArrowLeft, Plus, Trophy, Award, Mail, Phone, MapPin, Building2, Calendar, Edit, Settings, Layers } from 'lucide-react';
 import { Button } from '../../../../components/ui/Button';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 export default function OrganizationDetails() {
   const { user, loading: authLoading } = useAuth();
@@ -72,14 +73,7 @@ export default function OrganizationDetails() {
   };
 
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-          <p className="mt-4 text-sm text-gray-400">Carregando...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   if (error || !organization) {
@@ -138,6 +132,22 @@ export default function OrganizationDetails() {
                 <div className="flex-1 min-w-0">
                   <h1 className="text-2xl font-semibold text-white">{organization.name}</h1>
                   <p className="mt-1 text-sm text-gray-400">Informações completas da organização</p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => router.push(`/dashboard/organizations/${orgId}/category-templates`)}
+                    className="inline-flex items-center gap-x-2 rounded-md bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/20"
+                  >
+                    <Layers className="h-4 w-4" />
+                    Categorias Padrão
+                  </button>
+                  <button
+                    onClick={() => router.push(`/dashboard/organizations/${orgId}/edit`)}
+                    className="inline-flex items-center gap-x-2 rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+                  >
+                    <Settings className="h-4 w-4" />
+                    Configurações
+                  </button>
                 </div>
               </div>
 
@@ -260,9 +270,17 @@ export default function OrganizationDetails() {
                     <div className="flex w-full items-center justify-between space-x-6 p-6">
                       <div className="flex-1 truncate">
                         <div className="flex items-center gap-x-3">
-                          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-600">
-                            <Trophy className="h-5 w-5 text-white" />
-                          </div>
+                          {tournament.avatar ? (
+                            <img
+                              src={tournament.avatar}
+                              alt={tournament.name}
+                              className="h-10 w-10 flex-shrink-0 rounded-lg object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-indigo-600">
+                              <Trophy className="h-5 w-5 text-white" />
+                            </div>
+                          )}
                           <h3 className="truncate text-sm font-medium text-white">{tournament.name}</h3>
                         </div>
                         <div className="mt-4 space-y-2">

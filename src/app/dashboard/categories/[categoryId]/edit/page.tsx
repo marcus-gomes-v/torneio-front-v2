@@ -3,12 +3,16 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
-import { useAuth } from '../../../../../contexts/AuthContext';
-import { categoriesService, Category } from '../../../../../services/categories';
-import { rankingsService, Ranking } from '../../../../../services/rankings';
+import { useAuth } from '@/contexts/AuthContext';
+import { categoriesService, Category } from '@/services/categories';
+import { rankingsService, Ranking } from '@/services/rankings';
+import { categoryTemplatesService, CategoryTemplate } from '@/services/category-templates';
+import { tournamentsService } from '@/services/tournaments';
 import { ArrowLeft } from 'lucide-react';
-import { Button } from '../../../../../components/ui/Button';
-import { ImageUpload } from '../../../../../components/ui/ImageUpload';
+import { Button } from '@/components/ui/Button';
+import { ImageUpload } from '@/components/ui/ImageUpload';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { CompatibleCategoriesDialog } from '@/components/ui/CompatibleCategoriesDialog';
 
 type CategoryFormData = Omit<Category, '_id'>;
 
@@ -22,19 +26,36 @@ export default function EditCategory() {
   const [rankings, setRankings] = useState<Ranking[]>([]);
   const [loadingRankings, setLoadingRankings] = useState(true);
   const [loadingCategory, setLoadingCategory] = useState(true);
+  const [templates, setTemplates] = useState<CategoryTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [orgId, setOrgId] = useState<string>('');
   const [tournamentId, setTournamentId] = useState<string>('');
   const [image, setImage] = useState<string | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<CategoryTemplate | null>(null);
+  const [showCompatibleDialog, setShowCompatibleDialog] = useState(false);
 
   const {
     register,
     handleSubmit,
     watch,
+    setValue,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm<CategoryFormData>();
+  } = useForm<CategoryFormData>({
+    defaultValues: {
+      gameFormat: {
+        type: 'simples',
+        scoreType: 'sets_games',
+      },
+      audience: {
+        gender: 'livre',
+      },
+    },
+  });
 
   const scoreType = watch('gameFormat.scoreType');
+  const disputeModel = watch('disputeModel');
+  const gameType = watch('gameFormat.type');
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -43,14 +64,35 @@ export default function EditCategory() {
   }, [user, authLoading, router]);
 
   useEffect(() => {
-    loadCategory();
-  }, [categoryId]);
+    if (categoryId && user && !authLoading) {
+      loadCategory();
+    }
+  }, [categoryId, user, authLoading]);
 
   useEffect(() => {
     if (orgId) {
-      fetchRankings();
+      fetchData();
     }
   }, [orgId]);
+
+  useEffect(() => {
+    if (category?.categoryTemplateId && templates.length > 0) {
+      const template = templates.find((t) => t._id === category.categoryTemplateId);
+      if (template) {
+        setSelectedTemplate(template);
+      }
+    }
+  }, [category, templates]);
+
+  const formatDateForInput = (date: string) => {
+    if (!date) return '';
+    try {
+      return new Date(date).toISOString().slice(0, 16);
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return '';
+    }
+  };
 
   const loadCategory = async () => {
     try {
@@ -62,11 +104,24 @@ export default function EditCategory() {
       setImage(categoryData.image || null);
 
       // Get orgId from tournament
-      const { tournamentsService } = await import('../../../../../services/tournaments');
       const tournamentResponse = await tournamentsService.getOne(categoryData.tournamentId);
       setOrgId(tournamentResponse.data.organizationId);
 
-      reset(categoryData);
+      // Format dates and reset form with category data
+      const rankingIdValue = categoryData.rankingId
+        ? (typeof categoryData.rankingId === 'object' ? categoryData.rankingId._id : categoryData.rankingId)
+        : 'sem-ranking';
+
+      reset({
+        ...categoryData,
+        rankingId: rankingIdValue,
+        schedule: {
+          registrationStart: formatDateForInput(categoryData.schedule.registrationStart),
+          registrationEnd: formatDateForInput(categoryData.schedule.registrationEnd),
+          gamesStart: formatDateForInput(categoryData.schedule.gamesStart),
+          gamesEnd: formatDateForInput(categoryData.schedule.gamesEnd),
+        },
+      });
     } catch (error) {
       console.error('Erro ao carregar categoria:', error);
       alert('Erro ao carregar categoria');
@@ -75,25 +130,63 @@ export default function EditCategory() {
     }
   };
 
-  const fetchRankings = async () => {
+  const fetchData = async () => {
     try {
       setLoadingRankings(true);
-      const response = await rankingsService.getAll(orgId);
-      setRankings(response.data);
+      setLoadingTemplates(true);
+      const [rankingsResponse, templatesResponse] = await Promise.all([
+        rankingsService.getAll(orgId),
+        categoryTemplatesService.getAll(orgId),
+      ]);
+      setRankings(rankingsResponse.data);
+      setTemplates(templatesResponse.data);
     } catch (error) {
-      console.error('Erro ao buscar rankings:', error);
+      console.error('Erro ao buscar dados:', error);
     } finally {
       setLoadingRankings(false);
+      setLoadingTemplates(false);
     }
+  };
+
+  const applyTemplate = (templateId: string) => {
+    const template = templates.find((t) => t._id === templateId);
+    if (!template) {
+      setSelectedTemplate(null);
+      return;
+    }
+
+    setSelectedTemplate(template);
+    setValue('categoryTemplateId', templateId);
+    setValue('name', template.name);
+    setValue('gameFormat.type', template.gameFormat.type);
+    setValue('audience.gender', template.audience.gender);
+    if (template.audience.minAge) setValue('audience.minAge', template.audience.minAge);
+    if (template.audience.maxAge) setValue('audience.maxAge', template.audience.maxAge);
   };
 
   const onSubmit = async (data: CategoryFormData) => {
     try {
+      // Remove MongoDB internal fields that shouldn't be in the update payload
+      const { _id, createdAt, updatedAt, __v, ...cleanData } = data as any;
+
       const submitData = {
-        ...data,
+        ...cleanData,
         rankingId: data.rankingId === 'sem-ranking' ? undefined : data.rankingId,
+        categoryTemplateId: data.categoryTemplateId || undefined,
         tournamentId,
         image: image || undefined,
+        participantLimit: Number(data.participantLimit),
+        teamRaffleCriteria: data.teamRaffleCriteria ? Number(data.teamRaffleCriteria) : undefined,
+        roundRobin: data.roundRobin ? {
+          numberOfGroups: Number(data.roundRobin.numberOfGroups),
+          qualifiedPerGroup: Number(data.roundRobin.qualifiedPerGroup),
+        } : undefined,
+        audience: {
+          gender: data.audience.gender,
+          minAge: data.audience.minAge ? Number(data.audience.minAge) : undefined,
+          maxAge: data.audience.maxAge ? Number(data.audience.maxAge) : undefined,
+          combinedAge: data.audience.combinedAge ? Number(data.audience.combinedAge) : undefined,
+        },
       };
 
       await categoriesService.update(categoryId, submitData);
@@ -104,15 +197,8 @@ export default function EditCategory() {
     }
   };
 
-  if (authLoading || loadingRankings || loadingCategory) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-          <p className="mt-4 text-sm text-gray-400">Carregando...</p>
-        </div>
-      </div>
-    );
+  if (authLoading || loadingRankings || loadingCategory || loadingTemplates) {
+    return <LoadingSpinner />;
   }
 
   return (
@@ -129,31 +215,78 @@ export default function EditCategory() {
               <ArrowLeft className="h-4 w-4" />
               Voltar para Categoria
             </button>
-            <div className="md:flex md:items-center md:justify-between">
-              <div className="min-w-0 flex-1">
-                <h2 className="text-2xl font-bold text-white sm:text-3xl sm:tracking-tight">
-                  Editar Categoria
-                </h2>
-                <p className="mt-1 text-sm text-gray-400">
-                  Atualize os dados da categoria
-                </p>
-              </div>
-              <div className="mt-4 flex md:ml-4 md:mt-0 gap-3">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => router.push(`/dashboard/categories/${categoryId}`)}
-                >
-                  Cancelar
-                </Button>
-                <Button type="submit" variant="primary" disabled={isSubmitting}>
-                  {isSubmitting ? 'Atualizando...' : 'Atualizar Categoria'}
-                </Button>
-              </div>
+            <div>
+              <h2 className="text-2xl font-bold text-white sm:text-3xl sm:tracking-tight">
+                Editar Categoria
+              </h2>
+              <p className="mt-1 text-sm text-gray-400">
+                Atualize os dados da categoria
+              </p>
             </div>
           </div>
 
           <div className="space-y-8">
+            {/* Template Selection */}
+            {templates.length > 0 && (
+              <div className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3">
+                <div>
+                  <h2 className="text-base font-semibold text-white">Template</h2>
+                  <p className="mt-1 text-sm text-gray-400">
+                    Selecione um template pré-configurado (opcional)
+                  </p>
+                </div>
+
+                <div className="bg-gray-900 shadow-sm ring-1 ring-gray-800 sm:rounded-xl md:col-span-2">
+                  <div className="px-4 py-6 sm:p-8">
+                    <div className="grid max-w-2xl grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
+                      <div className="sm:col-span-6">
+                        <label htmlFor="template" className="block text-sm font-medium text-white">
+                          Usar Template
+                        </label>
+                        <div className="mt-2">
+                          <select
+                            id="template"
+                            onChange={(e) => applyTemplate(e.target.value)}
+                            value={category?.categoryTemplateId || ''}
+                            className="block w-full rounded-md bg-white/5 px-3 py-2 text-base text-white outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm [&>option]:text-gray-900 [&>option]:bg-white"
+                          >
+                            <option value="">Selecione um template...</option>
+                            {templates.map((template) => (
+                              <option key={template._id} value={template._id}>
+                                {template.name} ({template.level} - {template.gameFormat.type})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <p className="mt-2 text-sm text-gray-400">
+                          Ao selecionar um template, os campos serão preenchidos automaticamente
+                        </p>
+                        {selectedTemplate && (
+                          <div className="mt-4 rounded-md bg-indigo-500/10 px-4 py-3 border border-indigo-500/20">
+                            <p className="text-sm text-indigo-300">
+                              Pode jogar junto com{' '}
+                              {Array.isArray(selectedTemplate.compatibleTemplates)
+                                ? selectedTemplate.compatibleTemplates.length
+                                : 0}{' '}
+                              {Array.isArray(selectedTemplate.compatibleTemplates) && selectedTemplate.compatibleTemplates.length === 1 ? 'categoria' : 'categorias'}.
+                              {' '}
+                              <button
+                                type="button"
+                                className="font-semibold underline hover:text-indigo-200"
+                                onClick={() => setShowCompatibleDialog(true)}
+                              >
+                                Clique aqui para visualizar
+                              </button>
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Informações Gerais */}
             <div className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-3">
               <div>
@@ -174,7 +307,7 @@ export default function EditCategory() {
                         <select
                           {...register('rankingId')}
                           id="rankingId"
-                          className="block w-full rounded-md bg-white/5 px-3 py-2 text-base text-white outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm"
+                          className="block w-full rounded-md bg-white/5 px-3 py-2 text-base text-white outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm [&>option]:text-gray-900 [&>option]:bg-white"
                         >
                           <option value="sem-ranking">Sem Ranking</option>
                           {rankings.map((ranking) => (
@@ -222,7 +355,7 @@ export default function EditCategory() {
                         <select
                           {...register('disputeModel', { required: 'Campo obrigatório' })}
                           id="disputeModel"
-                          className="block w-full rounded-md bg-white/5 px-3 py-2 text-base text-white outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm"
+                          className="block w-full rounded-md bg-white/5 px-3 py-2 text-base text-white outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm [&>option]:text-gray-900 [&>option]:bg-white"
                         >
                           <option value="">Selecione...</option>
                           <option value="eliminacao-simples">Eliminação Simples</option>
@@ -255,6 +388,94 @@ export default function EditCategory() {
                       {errors.participantLimit && (
                         <p className="mt-2 text-sm text-red-400">{errors.participantLimit.message}</p>
                       )}
+                    </div>
+
+                    {(disputeModel === 'round-robin' || disputeModel === 'grupos-eliminacao') && (
+                      <>
+                        <div className="sm:col-span-3">
+                          <label htmlFor="numberOfGroups" className="block text-sm font-medium text-white">
+                            Número de Grupos *
+                          </label>
+                          <div className="mt-2">
+                            <input
+                              type="number"
+                              {...register('roundRobin.numberOfGroups', {
+                                required: disputeModel === 'round-robin' || disputeModel === 'grupos-eliminacao' ? 'Campo obrigatório' : false,
+                                min: { value: 2, message: 'Mínimo de 2 grupos' },
+                              })}
+                              id="numberOfGroups"
+                              placeholder="Ex: 4"
+                              className="block w-full rounded-md bg-white/5 px-3 py-2 text-base text-white outline-none ring-1 ring-inset ring-white/10 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm"
+                            />
+                          </div>
+                          {errors.roundRobin?.numberOfGroups && (
+                            <p className="mt-2 text-sm text-red-400">{errors.roundRobin.numberOfGroups.message}</p>
+                          )}
+                        </div>
+
+                        <div className="sm:col-span-3">
+                          <label htmlFor="qualifiedPerGroup" className="block text-sm font-medium text-white">
+                            Classificados por Grupo *
+                          </label>
+                          <div className="mt-2">
+                            <input
+                              type="number"
+                              {...register('roundRobin.qualifiedPerGroup', {
+                                required: disputeModel === 'round-robin' || disputeModel === 'grupos-eliminacao' ? 'Campo obrigatório' : false,
+                                min: { value: 1, message: 'Mínimo de 1 classificado' },
+                              })}
+                              id="qualifiedPerGroup"
+                              placeholder="Ex: 2"
+                              className="block w-full rounded-md bg-white/5 px-3 py-2 text-base text-white outline-none ring-1 ring-inset ring-white/10 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm"
+                            />
+                          </div>
+                          {errors.roundRobin?.qualifiedPerGroup && (
+                            <p className="mt-2 text-sm text-red-400">{errors.roundRobin.qualifiedPerGroup.message}</p>
+                          )}
+                        </div>
+                      </>
+                    )}
+
+                    {gameType === 'dupla' && (
+                      <div className="sm:col-span-3">
+                        <label htmlFor="teamRaffleCriteria" className="block text-sm font-medium text-white">
+                          Critério de Sorteio de Duplas
+                        </label>
+                        <div className="mt-2">
+                          <input
+                            type="number"
+                            {...register('teamRaffleCriteria', {
+                              min: { value: 0, message: 'Valor não pode ser negativo' },
+                            })}
+                            id="teamRaffleCriteria"
+                            placeholder="Ex: 5 (diferença máxima de nível)"
+                            className="block w-full rounded-md bg-white/5 px-3 py-2 text-base text-white outline-none ring-1 ring-inset ring-white/10 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm"
+                          />
+                        </div>
+                        <p className="mt-2 text-sm text-gray-400">
+                          Diferença máxima de nível permitida para formação automática de duplas
+                        </p>
+                        {errors.teamRaffleCriteria && (
+                          <p className="mt-2 text-sm text-red-400">{errors.teamRaffleCriteria.message}</p>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="sm:col-span-6">
+                      <div className="flex items-center gap-x-3">
+                        <input
+                          type="checkbox"
+                          {...register('randomTeams')}
+                          id="randomTeams"
+                          className="h-4 w-4 rounded border-white/10 bg-white/5 text-indigo-600 focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <label htmlFor="randomTeams" className="text-sm font-medium text-white">
+                          Sortear equipes/duplas automaticamente
+                        </label>
+                      </div>
+                      <p className="mt-2 text-sm text-gray-400">
+                        Quando ativado, o sistema criará equipes ou duplas aleatoriamente após o encerramento das inscrições
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -365,7 +586,7 @@ export default function EditCategory() {
                         <select
                           {...register('gameFormat.type', { required: 'Campo obrigatório' })}
                           id="gameType"
-                          className="block w-full rounded-md bg-white/5 px-3 py-2 text-base text-white outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm"
+                          className="block w-full rounded-md bg-white/5 px-3 py-2 text-base text-white outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm [&>option]:text-gray-900 [&>option]:bg-white"
                         >
                           <option value="simples">Simples</option>
                           <option value="dupla">Dupla</option>
@@ -385,7 +606,7 @@ export default function EditCategory() {
                         <select
                           {...register('gameFormat.scoreType', { required: 'Campo obrigatório' })}
                           id="scoreType"
-                          className="block w-full rounded-md bg-white/5 px-3 py-2 text-base text-white outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm"
+                          className="block w-full rounded-md bg-white/5 px-3 py-2 text-base text-white outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm [&>option]:text-gray-900 [&>option]:bg-white"
                         >
                           <option value="sets_games">Sets e Games</option>
                           <option value="sets_pontos">Sets e Pontos</option>
@@ -396,18 +617,23 @@ export default function EditCategory() {
                       )}
                     </div>
 
-                    <div className="sm:col-span-6">
+                    <div className="sm:col-span-3">
                       <label htmlFor="sets" className="block text-sm font-medium text-white">
-                        Configuração de Sets *
+                        Sets *
                       </label>
                       <div className="mt-2">
-                        <input
-                          type="text"
+                        <select
                           {...register('gameFormat.sets', { required: 'Campo obrigatório' })}
                           id="sets"
-                          placeholder="Ex: melhor de 3, melhor de 5"
-                          className="block w-full rounded-md bg-white/5 px-3 py-2 text-base text-white outline-none ring-1 ring-inset ring-white/10 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm"
-                        />
+                          className="block w-full rounded-md bg-white/5 px-3 py-2 text-base text-white outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm [&>option]:text-gray-900 [&>option]:bg-white"
+                        >
+                          <option value="">Selecione...</option>
+                          <option value="1">1 Set</option>
+                          <option value="2">2 Sets + Super Tiebreak</option>
+                          <option value="3">3 Sets</option>
+                          <option value="4">4 Sets + Super Tiebreak</option>
+                          <option value="5">5 Sets</option>
+                        </select>
                       </div>
                       {errors.gameFormat?.sets && (
                         <p className="mt-2 text-sm text-red-400">{errors.gameFormat.sets.message}</p>
@@ -415,19 +641,55 @@ export default function EditCategory() {
                     </div>
 
                     {scoreType === 'sets_games' && (
-                      <div className="sm:col-span-6">
+                      <div className="sm:col-span-3">
                         <label htmlFor="games" className="block text-sm font-medium text-white">
-                          Configuração de Games
+                          Games *
                         </label>
                         <div className="mt-2">
-                          <input
-                            type="text"
-                            {...register('gameFormat.games')}
+                          <select
+                            {...register('gameFormat.games', scoreType === 'sets_games' ? { required: 'Campo obrigatório' } : {})}
                             id="games"
-                            placeholder="Ex: primeiro a 6 games"
-                            className="block w-full rounded-md bg-white/5 px-3 py-2 text-base text-white outline-none ring-1 ring-inset ring-white/10 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm"
-                          />
+                            className="block w-full rounded-md bg-white/5 px-3 py-2 text-base text-white outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm [&>option]:text-gray-900 [&>option]:bg-white"
+                          >
+                            <option value="">Selecione...</option>
+                            <option value="1">1 Game</option>
+                            <option value="201">1 Game com tiebreak no 1 a 1</option>
+                            <option value="2">2 Games</option>
+                            <option value="102">2 Games com tiebreak no 1 a 1</option>
+                            <option value="202">2 Games com tiebreak no 2 a 2</option>
+                            <option value="3">3 Games</option>
+                            <option value="103">3 Games com tiebreak no 2 a 2</option>
+                            <option value="203">3 Games com tiebreak no 3 a 3</option>
+                            <option value="4">4 Games</option>
+                            <option value="104">4 Games com tiebreak no 3 a 3</option>
+                            <option value="204">4 Games com tiebreak no 4 a 4</option>
+                            <option value="5">5 Games</option>
+                            <option value="105">5 Games com tiebreak no 4 a 4</option>
+                            <option value="205">5 Games com tiebreak no 5 a 5</option>
+                            <option value="6">6 Games</option>
+                            <option value="106">6 Games com tiebreak no 5 a 5</option>
+                            <option value="206">6 Games com tiebreak no 6 a 6</option>
+                            <option value="7">7 Games</option>
+                            <option value="107">7 Games com tiebreak no 6 a 6</option>
+                            <option value="207">7 Games com tiebreak no 7 a 7</option>
+                            <option value="8">8 Games</option>
+                            <option value="108">8 Games com tiebreak no 7 a 7</option>
+                            <option value="208">8 Games com tiebreak no 8 a 8</option>
+                            <option value="9">9 Games</option>
+                            <option value="109">9 Games com tiebreak no 8 a 8</option>
+                            <option value="209">9 Games com tiebreak no 9 a 9</option>
+                            <option value="10">10 Games</option>
+                            <option value="110">10 Games com tiebreak no 9 a 9</option>
+                            <option value="210">10 Games com tiebreak no 10 a 10</option>
+                            <option value="11">11 Games</option>
+                            <option value="111">11 Games com tiebreak no 10 a 10</option>
+                            <option value="211">11 Games com tiebreak no 11 a 11</option>
+                            <option value="21">21 Games</option>
+                          </select>
                         </div>
+                        {errors.gameFormat?.games && (
+                          <p className="mt-2 text-sm text-red-400">{errors.gameFormat.games.message}</p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -455,7 +717,7 @@ export default function EditCategory() {
                         <select
                           {...register('audience.gender', { required: 'Campo obrigatório' })}
                           id="gender"
-                          className="block w-full rounded-md bg-white/5 px-3 py-2 text-base text-white outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm"
+                          className="block w-full rounded-md bg-white/5 px-3 py-2 text-base text-white outline-none ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm [&>option]:text-gray-900 [&>option]:bg-white"
                         >
                           <option value="masculino">Masculino</option>
                           <option value="feminino">Feminino</option>
@@ -532,9 +794,33 @@ export default function EditCategory() {
                 </div>
               </div>
             </div>
+
+            {/* Form Actions */}
+            <div className="flex items-center justify-end gap-x-6 pt-8 border-t border-white/10">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => router.push(`/dashboard/categories/${categoryId}`)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" variant="primary" disabled={isSubmitting}>
+                {isSubmitting ? 'Atualizando...' : 'Atualizar Categoria'}
+              </Button>
+            </div>
           </div>
         </div>
       </form>
+
+      {/* Compatible Categories Dialog */}
+      {selectedTemplate && (
+        <CompatibleCategoriesDialog
+          isOpen={showCompatibleDialog}
+          onClose={() => setShowCompatibleDialog(false)}
+          selectedTemplate={selectedTemplate}
+          allTemplates={templates}
+        />
+      )}
     </div>
   );
 }
