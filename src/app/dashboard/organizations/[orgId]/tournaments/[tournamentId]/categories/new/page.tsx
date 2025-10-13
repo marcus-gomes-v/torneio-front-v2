@@ -93,8 +93,8 @@ export default function NewCategory() {
     setSelectedTemplate(template);
     setValue('categoryTemplateId', templateId);
     setValue('name', template.name);
-    setValue('gameFormat.type', template.gameFormat.type);
-    setValue('audience.gender', template.audience.gender);
+    setValue('gameFormat.type', template.gameFormat.type as 'simples' | 'dupla' | 'equipe');
+    setValue('audience.gender', template.audience.gender as 'masculino' | 'feminino' | 'misto' | 'livre');
     if (template.audience.minAge) setValue('audience.minAge', template.audience.minAge);
     if (template.audience.maxAge) setValue('audience.maxAge', template.audience.maxAge);
   };

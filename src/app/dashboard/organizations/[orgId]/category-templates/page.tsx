@@ -100,9 +100,9 @@ export default function CategoryTemplatesPage() {
     setShowForm(true);
 
     const sportId = typeof template.sportId === 'object' ? template.sportId._id : template.sportId;
-    const compatibleIds = template.compatibleTemplates.map((t) =>
+    const compatibleIds = template.compatibleTemplates?.map((t) =>
       typeof t === 'string' ? t : t._id
-    );
+    ) || [];
 
     setValue('sportId', sportId);
     setValue('name', template.name);
