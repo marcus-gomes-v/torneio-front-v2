@@ -8,6 +8,7 @@ import { categoriesService, Category } from '../../../../../../../../services/ca
 import { rankingsService, Ranking } from '../../../../../../../../services/rankings';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '../../../../../../../../components/ui/Button';
+import { ImageUpload } from '../../../../../../../../components/ui/ImageUpload';
 
 type CategoryFormData = Omit<Category, '_id'>;
 
@@ -20,6 +21,7 @@ export default function NewCategory() {
 
   const [rankings, setRankings] = useState<Ranking[]>([]);
   const [loadingRankings, setLoadingRankings] = useState(true);
+  const [image, setImage] = useState<string | null>(null);
 
   const {
     register,
@@ -71,6 +73,7 @@ export default function NewCategory() {
         ...data,
         rankingId: data.rankingId === 'sem-ranking' ? undefined : data.rankingId,
         tournamentId,
+        image: image || undefined,
       };
 
       await categoriesService.create(submitData);
@@ -183,19 +186,12 @@ export default function NewCategory() {
                     </div>
 
                     <div className="sm:col-span-6">
-                      <label htmlFor="image" className="block text-sm font-medium text-white">
-                        URL da Imagem
-                      </label>
-                      <div className="mt-2">
-                        <input
-                          type="url"
-                          {...register('image')}
-                          id="image"
-                          placeholder="https://exemplo.com/imagem.jpg"
-                          className="block w-full rounded-md bg-white/5 px-3 py-2 text-base text-white outline-none ring-1 ring-inset ring-white/10 placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm"
-                        />
-                      </div>
-                      <p className="mt-2 text-sm text-gray-400">Opcional - imagem de capa da categoria</p>
+                      <ImageUpload
+                        label="Imagem da Categoria"
+                        value={image || undefined}
+                        onChange={setImage}
+                        helpText="Imagem de capa da categoria. Recomendado: 800x400px"
+                      />
                     </div>
 
                     <div className="sm:col-span-3">

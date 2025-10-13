@@ -6,7 +6,7 @@ import { useAuth } from '../../../../contexts/AuthContext';
 import { organizationsService, Organization } from '../../../../services/organizations';
 import { tournamentsService, Tournament } from '../../../../services/tournaments';
 import { rankingsService, Ranking } from '../../../../services/rankings';
-import { ArrowLeft, Plus, Trophy, Award, Mail, Phone, MapPin, Building2, Calendar } from 'lucide-react';
+import { ArrowLeft, Plus, Trophy, Award, Mail, Phone, MapPin, Building2, Calendar, Edit } from 'lucide-react';
 import { Button } from '../../../../components/ui/Button';
 
 export default function OrganizationDetails() {
@@ -360,6 +360,17 @@ export default function OrganizationDetails() {
                             </div>
                           )}
                         </div>
+                      </div>
+                    </div>
+                    <div className="bg-gray-800/50 px-6 py-4">
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => router.push(`/dashboard/rankings/${ranking._id}/edit`)}
+                          className="flex-1 inline-flex items-center justify-center gap-x-2 rounded-md bg-white/10 px-3 py-2 text-sm font-semibold text-white hover:bg-white/20 transition-colors"
+                        >
+                          <Edit className="h-4 w-4" />
+                          Editar
+                        </button>
                       </div>
                     </div>
                   </li>
